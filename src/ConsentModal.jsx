@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import MarkdownText from "./MarkdownText";
 
 const ConsentModal = ({
   consentText,
@@ -67,9 +68,11 @@ const ConsentModal = ({
             padding: "10px",
           }}
         >
-          {consentText?.split("\n").map((line, index) => (
-            <p key={index}>{line.trim()}</p>
-          ))}
+          {consentText?.trim() ? (
+            <MarkdownText content={consentText} className="space-y-3 text-sm leading-relaxed" />
+          ) : (
+            <p className="text-sm text-gray-600">No consent text configured.</p>
+          )}
         </div>
         <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <input
