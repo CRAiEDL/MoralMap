@@ -7,6 +7,7 @@ import ScenariosEditor from "./ScenariosEditor";
 import SurveyEditor from "./SurveyEditor";
 import InstructionsEditor from "./InstructionsEditor";
 import TextsEditor from "./TextsEditor";
+import PilotSettings from "./PilotSettings";
 import { validateScenarioConfig } from "./validateScenarios";
 import { withBasePath } from "../utils/basePath";
 
@@ -108,7 +109,7 @@ export default function AdminApp() {
   const router = useRouter();
   const pathname = usePathname();
   const section = pathname.split("/").pop();
-  const validSections = ["scenarios", "survey", "instructions", "texts"];
+  const validSections = ["scenarios", "survey", "instructions", "texts", "pilot"];
 
   useEffect(() => {
     if (!section || !validSections.includes(section)) {
@@ -119,7 +120,7 @@ export default function AdminApp() {
   const linkClass = (slug) =>
     `px-2 py-1 rounded ${section === slug ? "bg-white border" : "hover:underline"}`;
 
-  const canSave = section === "scenarios";
+  const canSave = section === "scenarios" || section === "pilot";
 
   const logout = () => {
     if (typeof window !== "undefined") {
@@ -139,6 +140,7 @@ export default function AdminApp() {
           <Link href="/admin/survey" className={linkClass("survey")}>Survey</Link>
           <Link href="/admin/instructions" className={linkClass("instructions")}>Instructions</Link>
           <Link href="/admin/texts" className={linkClass("texts")}>Texts</Link>
+          <Link href="/admin/pilot" className={linkClass("pilot")}>Pilot</Link>
         </nav>
         <div className="flex items-center gap-3">
           {canSave && dirty && (
@@ -170,6 +172,7 @@ export default function AdminApp() {
         {section === "survey" && <SurveyEditor />}
         {section === "instructions" && <InstructionsEditor />}
         {section === "texts" && <TextsEditor />}
+        {section === "pilot" && <PilotSettings />}
       </main>
     </ConfigContext.Provider>
   );
