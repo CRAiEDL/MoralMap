@@ -98,6 +98,10 @@ export async function GET() {
       scenarios: rawScenarios,
       settings,
       consentText: textsConfig?.consentText ?? '',
+      ageConfirmationText:
+        typeof textsConfig?.ageConfirmationText === 'string'
+          ? textsConfig.ageConfirmationText
+          : '',
       scenarioText: typeof textsConfig?.scenarioText === 'string' ? textsConfig.scenarioText : '',
       instructions: Array.isArray(instructionsConfig?.steps) ? instructionsConfig.steps : [],
       survey: Array.isArray(surveyConfig?.survey) ? surveyConfig.survey : [],
@@ -182,12 +186,15 @@ export async function POST(req) {
     });
   }
 
-  if ('consentText' in body || 'scenarioText' in body) {
+  if ('consentText' in body || 'scenarioText' in body || 'ageConfirmationText' in body) {
     if ('consentText' in body && typeof body.consentText !== 'string') {
       return NextResponse.json({ error: 'consentText must be a string' }, { status: 400 });
     }
     if ('scenarioText' in body && typeof body.scenarioText !== 'string') {
       return NextResponse.json({ error: 'scenarioText must be a string' }, { status: 400 });
+    }
+    if ('ageConfirmationText' in body && typeof body.ageConfirmationText !== 'string') {
+      return NextResponse.json({ error: 'ageConfirmationText must be a string' }, { status: 400 });
     }
 
     const existingTexts = clone((await get('textsConfig')) || {});
@@ -198,6 +205,9 @@ export async function POST(req) {
     }
     if ('scenarioText' in body) {
       nextTexts.scenarioText = body.scenarioText;
+    }
+    if ('ageConfirmationText' in body) {
+      nextTexts.ageConfirmationText = body.ageConfirmationText;
     }
 
     updates.push({

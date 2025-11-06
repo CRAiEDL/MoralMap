@@ -126,7 +126,7 @@ const MapRoute = () => {
     }
   };
 
-  const { consentText, scenarioText, instructions } = routeConfig || {};
+  const { consentText, scenarioText, instructions, ageConfirmationText } = routeConfig || {};
   const currentScenario = scenarios[scenarioIndex];
   const defaultTime = currentScenario?.defaultTime;
   const currentAlternative =
@@ -257,6 +257,7 @@ const MapRoute = () => {
 
       {!ageConfirmed && (
         <AgeConfirmationModal
+          text={ageConfirmationText}
           onConfirm={() => setAgeConfirmed(true)}
           onDecline={() => router.push("/ineligible")}
         />
