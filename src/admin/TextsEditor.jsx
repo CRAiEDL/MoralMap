@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import MarkdownText from "../MarkdownText";
 import { withBasePath } from "../utils/basePath";
 
 const API_URL = withBasePath("/api/route-endpoints");
@@ -62,21 +63,49 @@ export default function TextsEditor() {
       {error && (
         <div className="border rounded-xl p-3 text-sm bg-red-50 border-red-200 text-red-800">{error}</div>
       )}
-      <div>
-        <label className="block text-sm font-medium mb-1">Consent text</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Consent text</label>
+        <p className="text-xs text-gray-500">
+          Supports Markdown formatting (for example, <code>**bold**</code>, lists, and line breaks).
+        </p>
         <textarea
           value={consentText}
           onChange={(e) => setConsentText(e.target.value)}
-          className="w-full border rounded px-2 py-1 text-sm h-48"
+          className="w-full border rounded px-3 py-2 text-sm h-48 font-mono"
+          placeholder="Introduce the consent text here..."
         />
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <p className="text-xs font-semibold uppercase text-gray-500">Preview</p>
+          <div className="mt-2 text-sm text-gray-700">
+            {consentText.trim() ? (
+              <MarkdownText content={consentText} className="space-y-2" />
+            ) : (
+              <p className="text-xs text-gray-400">Start typing to see the formatted preview.</p>
+            )}
+          </div>
+        </div>
       </div>
-      <div>
-        <h2 className="text-lg font-semibold mb-1">Scenario text</h2>
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Scenario text</h2>
+        <p className="text-xs text-gray-500">
+          Markdown is supported for emphasis, bullet lists, and spacing.
+        </p>
         <textarea
           value={scenarioText}
           onChange={(e) => setScenarioText(e.target.value)}
-          className="w-full border rounded px-2 py-1 text-sm h-32"
+          className="w-full border rounded px-3 py-2 text-sm h-40 font-mono"
+          placeholder="Describe the scenario shown to participants..."
         />
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <p className="text-xs font-semibold uppercase text-gray-500">Preview</p>
+          <div className="mt-2 text-sm text-gray-700">
+            {scenarioText.trim() ? (
+              <MarkdownText content={scenarioText} className="space-y-2" />
+            ) : (
+              <p className="text-xs text-gray-400">Start typing to see the formatted preview.</p>
+            )}
+          </div>
+        </div>
       </div>
       <div className="flex gap-2">
         <button onClick={discard} className="px-3 py-1.5 border rounded-xl">Discard</button>

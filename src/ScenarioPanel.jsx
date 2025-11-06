@@ -1,4 +1,5 @@
 import React from "react";
+import MarkdownText from "./MarkdownText";
 
 const ScenarioPanel = ({
   scenarioNumber,
@@ -45,7 +46,7 @@ const ScenarioPanel = ({
       <div className="flex-1 overflow-y-auto pr-2">
         <p className="font-semibold">Scenario {scenarioNumber} out of {totalScenarios}</p>
         <div className="mt-3 mb-6 rounded-md bg-gray-100 p-4 text-gray-700">
-          <p className="whitespace-pre-line">{scenarioDescription}</p>
+          <MarkdownText content={scenarioDescription} className="space-y-2 text-sm leading-relaxed" />
         </div>
 
         <div className="space-y-4">
