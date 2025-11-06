@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ProgressBar from "./ProgressBar";
 import { withBasePath } from "./utils/basePath";
+import { COUNTRIES } from "./utils/countries";
 
 const computeScenarioCount = (config) => {
   if (!config) return 0;
@@ -167,9 +168,11 @@ const ThankYou = () => {
               const fieldName = field?.name;
               if (!fieldName) return null;
 
-              const options = Array.isArray(field?.options)
-                ? field.options
-                : [];
+              const options = field.type === "countries"
+                ? COUNTRIES
+                : Array.isArray(field?.options)
+                  ? field.options
+                  : [];
 
               return (
                 <div key={fieldName} className="mb-5">
@@ -177,7 +180,7 @@ const ThankYou = () => {
                     {fieldName}
                   </label>
 
-                  {field.type === "select" ? (
+                  {field.type === "select" || field.type === "countries" ? (
                     options.length > 0 ? (
                       <select
                         value={responses[fieldName] || ""}

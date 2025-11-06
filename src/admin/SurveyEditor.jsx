@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { withBasePath } from "../utils/basePath";
+import { COUNTRIES } from "../utils/countries";
 
 /**
  * SurveyEditor
@@ -13,7 +14,15 @@ import { withBasePath } from "../utils/basePath";
 const API_URL = withBasePath("/api/route-endpoints");
 
 const EMPTY_FIELD = () => ({ name: "question", type: "text", options: [] });
-const FIELD_TYPES = ["text", "number", "email", "date", "select", "multiselect"];
+const FIELD_TYPES = [
+  "text",
+  "number",
+  "email",
+  "date",
+  "select",
+  "multiselect",
+  "countries",
+];
 
 export default function SurveyEditor() {
   const [config, setConfig] = useState(null); // full config
@@ -46,11 +55,20 @@ export default function SurveyEditor() {
     return () => { ignore = true; };
   }, []);
 
-  const normalizeField = (f) => ({
-    name: f?.name ?? "question",
-    type: FIELD_TYPES.includes(f?.type) ? f.type : "text",
-    options: Array.isArray(f?.options) ? f.options : [],
-  });
+  const normalizeField = (f) => {
+    const type = FIELD_TYPES.includes(f?.type) ? f.type : "text";
+    const base = {
+      name: f?.name ?? "question",
+      type,
+      options: Array.isArray(f?.options) ? f.options : [],
+    };
+
+    if (type === "countries") {
+      base.options = [...COUNTRIES];
+    }
+
+    return base;
+  };
 
   // Validation
   const validation = useMemo(() => validateFields(fields), [fields]);
@@ -103,7 +121,18 @@ export default function SurveyEditor() {
   };
 
   const handleFieldChange = (idx, patch) => {
-    setFields((prev) => prev.map((f, i) => (i === idx ? normalizeField({ ...f, ...patch }) : f)));
+    setFields((prev) =>
+      prev.map((f, i) => {
+        if (i !== idx) return f;
+        const next = { ...f, ...patch };
+        if (patch.type === "countries") {
+          next.options = [...COUNTRIES];
+        } else if (patch.type && f.type === "countries") {
+          next.options = [];
+        }
+        return normalizeField(next);
+      })
+    );
   };
 
   const handleSave = async () => {
@@ -266,6 +295,11 @@ function FieldEditor({ field, onChange, onChangeOption }) {
       {["select", "multiselect"].includes(field.type) && (
         <OptionsEditor options={field.options || []} onChange={onChangeOption} />
       )}
+      {field.type === "countries" && (
+        <div className="mt-4 text-xs text-gray-500">
+          This field will include a dropdown of all countries automatically.
+        </div>
+      )}
     </div>
   );
 }
@@ -327,6 +361,12 @@ function SurveyPreview({ fields }) {
             ) : (
               <div className="text-xs text-gray-500">No options configured.</div>
             )
+          ) : f.type === "countries" ? (
+            <select className="border rounded-lg px-3 py-2">
+              {COUNTRIES.map((country) => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
           ) : f.type === "multiselect" ? (
             (f.options || []).length ? (
               <div className="flex flex-col gap-1">
@@ -350,6 +390,11 @@ function SurveyPreview({ fields }) {
 }
 
 function stripEmptyOptions(f) {
+  if (f.type === "countries") {
+    const { options, ...rest } = f;
+    return rest;
+  }
+
   if (!["select", "multiselect"].includes(f.type)) {
     const { options, ...rest } = f;
     return rest;
