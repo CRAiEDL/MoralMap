@@ -22,6 +22,24 @@ const ScenarioPanel = ({
     typeof scenarioText === "string" && scenarioText.trim().length > 0
       ? scenarioText
       : defaultScenarioText;
+  const routeOptions = [
+    {
+      key: "default-route",
+      index: 0,
+      label: "Time Efficient Route",
+      description:
+        typeof defaultTime === "number"
+          ? `Approximately ${Math.round(defaultTime)} minutes`
+          : undefined,
+    },
+    ...alternatives.map((alt, idx) => ({
+      key: `${alt.label}-${idx}`,
+      index: idx + 1,
+      label: alt.label,
+      description: alt.description,
+    })),
+  ];
+
   return (
     <div className="absolute left-5 top-5 z-[1000] flex w-96 max-h-[calc(100vh-40px)] flex-col rounded-xl bg-white p-6 font-sans text-base text-gray-800 shadow-lg">
       <div className="flex-1 overflow-y-auto pr-2">
@@ -32,46 +50,52 @@ const ScenarioPanel = ({
 
         <div className="space-y-4">
           <div className="space-y-3">
-            {alternatives.length === 0 ? (
-              <p className="text-sm text-gray-500">No alternative routes configured.</p>
-            ) : (
-              alternatives.map((alt, idx) => {
-                const index = idx + 1;
-                const isSelected = selectedRouteIndex === index;
-                return (
-                  <div
-                    key={`${alt.label}-${idx}`}
-                    className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
-                      isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                    }`}
-                  >
-                    <div className="pr-4">
-                      <p className="text-sm font-medium">{alt.label}</p>
-                      {alt.description && (
-                        <p className="mt-1 text-xs text-gray-500">{alt.description}</p>
-                      )}
-                    </div>
+            {routeOptions.map((option) => {
+              const isSelected = selectedRouteIndex === option.index;
+              const handleToggle = () => {
+                if (option.index === 0) {
+                  if (!isSelected) {
+                    onSelectRoute(0);
+                  }
+                  return;
+                }
 
-                    <label className="inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onSelectRoute(isSelected ? 0 : index)}
-                        className="peer sr-only"
-                      />
-                      <div
-                        className={
-                          "relative h-7 w-14 rounded-full bg-gray-300 transition-colors " +
-                          "peer-checked:bg-blue-600 " +
-                          "after:absolute after:left-[2px] after:top-[2px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-transform " +
-                          "peer-checked:after:translate-x-7"
-                        }
-                      ></div>
-                    </label>
+                onSelectRoute(isSelected ? 0 : option.index);
+              };
+
+              return (
+                <div
+                  key={option.key}
+                  className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                    isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                  }`}
+                >
+                  <div className="pr-4">
+                    <p className="text-sm font-medium">{option.label}</p>
+                    {option.description && (
+                      <p className="mt-1 text-xs text-gray-500">{option.description}</p>
+                    )}
                   </div>
-                );
-              })
-            )}
+
+                  <label className="inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={handleToggle}
+                      className="peer sr-only"
+                    />
+                    <div
+                      className={
+                        "relative h-7 w-14 rounded-full bg-gray-300 transition-colors " +
+                        "peer-checked:bg-blue-600 " +
+                        "after:absolute after:left-[2px] after:top-[2px] after:h-6 after:w-6 after:rounded-full after:bg-white after:transition-transform " +
+                        "peer-checked:after:translate-x-7"
+                      }
+                    ></div>
+                  </label>
+                </div>
+              );
+            })}
           </div>
 
           <button
