@@ -129,9 +129,21 @@ export async function PATCH(req) {
     const updated = existing && typeof existing === 'object' ? existing : {};
 
     for (const key of allowedKeys) {
-      if (key in body) {
-        updated[key] = body[key];
+      if (!(key in body)) continue;
+
+      if (key === 'settings') {
+        const nextSettings =
+          body.settings && typeof body.settings === 'object' ? body.settings : {};
+        const existingSettings =
+          updated.settings && typeof updated.settings === 'object'
+            ? updated.settings
+            : {};
+
+        updated.settings = { ...existingSettings, ...nextSettings };
+        continue;
       }
+
+      updated[key] = body[key];
     }
 
     await updateEdgeConfigItems([
