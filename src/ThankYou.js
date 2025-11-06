@@ -128,6 +128,15 @@ const ThankYou = () => {
         throw new Error(payload?.error || "Submission failed");
       }
 
+      const pilotEnabled = !!config?.settings?.pilotEnabled;
+      const pilotLink = (config?.settings?.pilotSurveyLink || "").trim();
+      if (pilotEnabled && pilotLink) {
+        if (typeof window !== "undefined") {
+          window.location.href = pilotLink;
+          return;
+        }
+      }
+
       setSubmitted(true);
     } catch (err) {
       console.error("Could not submit survey:", err);
