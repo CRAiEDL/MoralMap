@@ -1,11 +1,17 @@
 import React from "react";
+import MarkdownText from "./MarkdownText";
 
-const AgeConfirmationModal = ({ onConfirm, onDecline }) => {
+const DEFAULT_TEXT =
+  "To take part in this study you must confirm that you are at least 16 years old. If you are younger than 16, please close this window or select “I am under 16” below.";
+
+const AgeConfirmationModal = ({ text, onConfirm, onDecline }) => {
   const handleDecline = () => {
     if (typeof onDecline === "function") {
       onDecline();
     }
   };
+
+  const content = typeof text === "string" && text.trim() !== "" ? text : DEFAULT_TEXT;
 
   return (
     <div
@@ -37,11 +43,9 @@ const AgeConfirmationModal = ({ onConfirm, onDecline }) => {
         }}
       >
         <h2 style={{ margin: 0 }}>Age Confirmation</h2>
-        <p style={{ margin: 0 }}>
-          To take part in this study you must confirm that you are at least 16 years
-          old. If you are younger than 16, please close this window or select “I am
-          under 16” below.
-        </p>
+        <div style={{ margin: 0, fontSize: "0.95rem", color: "#111827" }}>
+          <MarkdownText content={content} className="space-y-3 text-sm text-gray-800" />
+        </div>
         <div
           style={{
             display: "flex",

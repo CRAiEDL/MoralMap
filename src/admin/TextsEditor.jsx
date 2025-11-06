@@ -7,6 +7,7 @@ const API_URL = withBasePath("/api/route-endpoints");
 export default function TextsEditor() {
   const [consentText, setConsentText] = useState("");
   const [scenarioText, setScenarioText] = useState("");
+  const [ageConfirmationText, setAgeConfirmationText] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -19,6 +20,9 @@ export default function TextsEditor() {
         return r.json();
       })
       .then((data) => {
+        setAgeConfirmationText(
+          typeof data.ageConfirmationText === "string" ? data.ageConfirmationText : ""
+        );
         setConsentText(data.consentText || "");
         setScenarioText(typeof data.scenarioText === "string" ? data.scenarioText : "");
         setError("");
@@ -35,7 +39,7 @@ export default function TextsEditor() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ consentText, scenarioText }),
+        body: JSON.stringify({ consentText, scenarioText, ageConfirmationText }),
       });
       if (!res.ok) throw new Error(`Failed to save (${res.status})`);
     } catch (e) {
@@ -50,6 +54,9 @@ export default function TextsEditor() {
     fetch(API_URL, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
+        setAgeConfirmationText(
+          typeof data.ageConfirmationText === "string" ? data.ageConfirmationText : ""
+        );
         setConsentText(data.consentText || "");
         setScenarioText(typeof data.scenarioText === "string" ? data.scenarioText : "");
       })
@@ -63,6 +70,29 @@ export default function TextsEditor() {
       {error && (
         <div className="border rounded-xl p-3 text-sm bg-red-50 border-red-200 text-red-800">{error}</div>
       )}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Age confirmation text</label>
+        <p className="text-xs text-gray-500">
+          Displayed in the age confirmation window. Markdown formatting is supported.
+        </p>
+        <textarea
+          value={ageConfirmationText}
+          onChange={(e) => setAgeConfirmationText(e.target.value)}
+          className="w-full border rounded px-3 py-2 text-sm h-36 font-mono"
+          placeholder="Provide the text shown before participants confirm their age..."
+        />
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <p className="text-xs font-semibold uppercase text-gray-500">Preview</p>
+          <div className="mt-2 text-sm text-gray-700">
+            {ageConfirmationText.trim() ? (
+              <MarkdownText content={ageConfirmationText} className="space-y-2" />
+            ) : (
+              <p className="text-xs text-gray-400">Start typing to see the formatted preview.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <label className="block text-sm font-medium">Consent text</label>
         <p className="text-xs text-gray-500">
