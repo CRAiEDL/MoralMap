@@ -160,7 +160,7 @@ const MapRoute = () => {
 
   const panelLabel =
     selectedRouteIndex === 0
-      ? "Default"
+      ? "Time Efficient Route"
       : currentAlternative?.label || currentScenario?.scenarioName || "Alternative";
   const panelDescription =
     selectedRouteIndex === 0 ? "" : currentAlternative?.description || "";
