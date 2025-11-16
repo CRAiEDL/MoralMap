@@ -211,13 +211,14 @@ const MapRoute = () => {
 
     const topReserved = Math.round(height * 0.15);
     const bottomReserved = Math.round(height * 0.35);
-    const sidePadding = Math.max(12, Math.round(width * 0.03));
-    const paddingTopLeft = [sidePadding, topReserved + 12];
-    const paddingBottomRight = [sidePadding, bottomReserved + 12];
+    const sidePadding = Math.max(8, Math.round(width * 0.02));
+    const paddingTopLeft = [sidePadding, topReserved + 8];
+    const paddingBottomRight = [sidePadding, bottomReserved + 8];
 
     return {
-      bounds: { paddingTopLeft, paddingBottomRight, maxZoom: 17 },
-      fit: { paddingTopLeft, paddingBottomRight, maxZoom: 17 },
+      bounds: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
+      fit: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
+      meta: { topReserved, bottomReserved },
     };
   }, [isMobile, viewport.height, viewport.width]);
 
@@ -225,7 +226,18 @@ const MapRoute = () => {
     if (!mapInstance || !bounds) return;
 
     mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
-  }, [mapInstance, bounds, mapPaddingOptions]);
+
+    if (isMobile) {
+      const height = viewport.height || 0;
+      const topReserved = mapPaddingOptions.meta?.topReserved ?? Math.round(height * 0.15);
+      const bottomReserved = mapPaddingOptions.meta?.bottomReserved ?? Math.round(height * 0.35);
+      const deltaY = (topReserved - bottomReserved) / 2;
+
+      if (deltaY !== 0) {
+        mapInstance.panBy([0, deltaY], { animate: false });
+      }
+    }
+  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height]);
 
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
