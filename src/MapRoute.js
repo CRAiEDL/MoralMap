@@ -30,10 +30,23 @@ const MapRoute = () => {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0); // 0 = default
   const [error, setError] = useState(null);
   const [sessionId] = useState(uuidv4());
+  const [mapInstance, setMapInstance] = useState(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   useEffect(() => {
     localStorage.setItem("sessionId", sessionId);
   }, [sessionId]);
   const router = useRouter();
+
+  useEffect(() => {
+    const updateViewport = () => {
+      if (typeof window === "undefined") return;
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     fetch(withBasePath("/api/route-endpoints"))
@@ -182,6 +195,21 @@ const MapRoute = () => {
     return bounds.pad(0.25);
   }, [bounds]);
 
+  const isMobile = viewport.width > 0 ? viewport.width <= 768 : false;
+
+  useEffect(() => {
+    if (!mapInstance || !bounds) return;
+
+    const sidePadding = isMobile ? 20 : 50;
+    const reservedHeight = isMobile ? Math.round((viewport.height || 0) * 0.25) : 40;
+
+    mapInstance.fitBounds(bounds, {
+      paddingTopLeft: [sidePadding, reservedHeight + 20],
+      paddingBottomRight: [sidePadding, reservedHeight + 20],
+      maxZoom: 15,
+    });
+  }, [mapInstance, bounds, isMobile, viewport.height]);
+
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
 
@@ -209,18 +237,19 @@ const MapRoute = () => {
       )}
       <MapContainer
         bounds={bounds}
-        boundsOptions={{ padding: [50, 50], maxZoom: 15 }}
+        boundsOptions={{ padding: [isMobile ? 20 : 50, isMobile ? 20 : 50], maxZoom: 15 }}
         maxBounds={maxBounds ?? undefined}
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={false}
         doubleClickZoom={false}
-        touchZoom={false}
+        touchZoom={isMobile}
         boxZoom={false}
         keyboard={false}
         zoomControl={false}
-        dragging={false}
-        inertia={false}
+        dragging={isMobile}
+        inertia={isMobile}
+        whenCreated={setMapInstance}
       >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
