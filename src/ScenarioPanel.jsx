@@ -142,7 +142,7 @@ const ScenarioPanel = ({
       <div className="md:hidden">
         <div className="pointer-events-none fixed inset-0 z-[1000] flex flex-col justify-between space-y-4">
           <div className="pointer-events-auto px-4 pt-4">
-            <div className="max-h-[25vh] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur">
+            <div className="max-h-[15vh] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur">
               <ScenarioInfo
                 scenarioNumber={scenarioNumber}
                 totalScenarios={totalScenarios}
@@ -152,16 +152,14 @@ const ScenarioPanel = ({
           </div>
 
           <div className="pointer-events-auto px-4 pb-4">
-            <div className="flex max-h-[25vh] flex-col rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur">
-              <div className="flex-1 overflow-y-auto pr-1">
-                <RouteSelection
-                  routeOptions={routeOptions}
-                  selectedRouteIndex={selectedRouteIndex}
-                  onSelectRoute={onSelectRoute}
-                  onSubmit={onSubmit}
-                  compact
-                />
-              </div>
+            <div className="max-h-[35vh] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur">
+              <RouteSelection
+                routeOptions={routeOptions}
+                selectedRouteIndex={selectedRouteIndex}
+                onSelectRoute={onSelectRoute}
+                onSubmit={onSubmit}
+                compact
+              />
               <div className="mt-4 border-t border-gray-200 pt-4">
                 <Branding />
               </div>

@@ -197,18 +197,35 @@ const MapRoute = () => {
 
   const isMobile = viewport.width > 0 ? viewport.width <= 768 : false;
 
+  const mapPaddingOptions = useMemo(() => {
+    const width = viewport.width || 0;
+    const height = viewport.height || 0;
+
+    if (!isMobile) {
+      const desktopPadding = 50;
+      return {
+        bounds: { padding: [desktopPadding, desktopPadding], maxZoom: 15 },
+        fit: { padding: [desktopPadding, desktopPadding], maxZoom: 15 },
+      };
+    }
+
+    const topReserved = Math.round(height * 0.15);
+    const bottomReserved = Math.round(height * 0.35);
+    const sidePadding = Math.max(12, Math.round(width * 0.03));
+    const paddingTopLeft = [sidePadding, topReserved + 12];
+    const paddingBottomRight = [sidePadding, bottomReserved + 12];
+
+    return {
+      bounds: { paddingTopLeft, paddingBottomRight, maxZoom: 17 },
+      fit: { paddingTopLeft, paddingBottomRight, maxZoom: 17 },
+    };
+  }, [isMobile, viewport.height, viewport.width]);
+
   useEffect(() => {
     if (!mapInstance || !bounds) return;
 
-    const sidePadding = isMobile ? 20 : 50;
-    const reservedHeight = isMobile ? Math.round((viewport.height || 0) * 0.25) : 40;
-
-    mapInstance.fitBounds(bounds, {
-      paddingTopLeft: [sidePadding, reservedHeight + 20],
-      paddingBottomRight: [sidePadding, reservedHeight + 20],
-      maxZoom: 15,
-    });
-  }, [mapInstance, bounds, isMobile, viewport.height]);
+    mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
+  }, [mapInstance, bounds, mapPaddingOptions]);
 
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
@@ -237,7 +254,7 @@ const MapRoute = () => {
       )}
       <MapContainer
         bounds={bounds}
-        boundsOptions={{ padding: [isMobile ? 20 : 50, isMobile ? 20 : 50], maxZoom: 15 }}
+        boundsOptions={mapPaddingOptions.bounds}
         maxBounds={maxBounds ?? undefined}
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
