@@ -215,15 +215,17 @@ const MapRoute = () => {
     return width <= 768;
   }, [viewport.width, viewport.height]);
 
+  const effectiveMaxBounds = useMemo(() => {
+    if (!maxBounds) return null;
+
+    return !isMobile || !hasUserDraggedMap ? maxBounds : null;
+  }, [maxBounds, isMobile, hasUserDraggedMap]);
+
   useEffect(() => {
     if (!mapInstance) return;
 
-    if (maxBounds && (!isMobile || !hasUserDraggedMap)) {
-      mapInstance.setMaxBounds(maxBounds);
-    } else {
-      mapInstance.setMaxBounds(null);
-    }
-  }, [mapInstance, maxBounds, isMobile, hasUserDraggedMap]);
+    mapInstance.setMaxBounds(effectiveMaxBounds);
+  }, [mapInstance, effectiveMaxBounds]);
 
   const mapPaddingOptions = useMemo(() => {
     const width = viewport.width || 0;
@@ -323,8 +325,8 @@ const MapRoute = () => {
       <MapContainer
         bounds={bounds}
         boundsOptions={mapPaddingOptions.bounds}
-        maxBounds={maxBounds ?? undefined}
-        maxBoundsViscosity={1.0}
+        maxBounds={effectiveMaxBounds ?? undefined}
+        maxBoundsViscosity={effectiveMaxBounds ? 1.0 : 0.0}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={isMobile}
         doubleClickZoom={isMobile}
