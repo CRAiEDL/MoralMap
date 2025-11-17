@@ -223,10 +223,12 @@ const MapRoute = () => {
     };
   }, [isMobile, viewport.height, viewport.width]);
 
+  const allowAutoFit = !isMobile || !userAdjustedView;
+
   useEffect(() => {
     if (!mapInstance || !bounds) return;
 
-    if (isMobile && userAdjustedView) return;
+    if (!allowAutoFit) return;
 
     mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
 
@@ -240,7 +242,7 @@ const MapRoute = () => {
         mapInstance.panBy([0, deltaY], { animate: false });
       }
     }
-  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height, userAdjustedView]);
+  }, [mapInstance, bounds, mapPaddingOptions, allowAutoFit, viewport.height]);
 
   useEffect(() => {
     if (!mapInstance || !isMobile) return;
@@ -315,6 +317,7 @@ const MapRoute = () => {
           consentGiven={consentGiven}
           setMapPoints={setMapPoints}
           setRoutes={setRoutes}
+          allowAutoFit={allowAutoFit}
         />
       </MapContainer>
 

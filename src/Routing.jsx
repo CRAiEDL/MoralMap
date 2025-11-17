@@ -14,6 +14,7 @@ const Routing = ({
   consentGiven,
   setMapPoints,
   setRoutes,
+  allowAutoFit = true,
 }) => {
   const map = useMap();
   const [localRoutes, setLocalRoutes] = useState([]);
@@ -43,11 +44,6 @@ const Routing = ({
       });
 
       setLocalRoutes(newRoutes);
-      const allCoords = newRoutes.flatMap((r) => (r?.coords ? r.coords : []));
-      if (allCoords.length) {
-        const bounds = L.latLngBounds(allCoords);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: false });
-      }
     }
 
     loadRoutes();
@@ -57,6 +53,17 @@ const Routing = ({
       setLocalRoutes([]);
     };
   }, [map, from, to, alternatives, defaultTimeMinutes]);
+
+  useEffect(() => {
+    if (!map || !localRoutes.length) return;
+    if (!allowAutoFit) return;
+
+    const allCoords = localRoutes.flatMap((r) => (r?.coords ? r.coords : []));
+    if (!allCoords.length) return;
+
+    const bounds = L.latLngBounds(allCoords);
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: false });
+  }, [map, localRoutes, allowAutoFit]);
 
   useEffect(() => {
     if (!map || !consentGiven) return;
