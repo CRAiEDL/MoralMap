@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import MarkdownText from "./MarkdownText";
 
 const ScenarioInfo = ({ scenarioNumber, totalScenarios, scenarioDescription }) => (
@@ -96,6 +96,14 @@ const ScenarioPanel = ({
         "The Default route prioritizes safety and takes about 25 minutes.\n\n" +
         "Use the toggle below to activate the default route if you prefer safety over speed.";
 
+  const bottomPanelRef = useRef(null);
+
+  useEffect(() => {
+    if (bottomPanelRef.current) {
+      bottomPanelRef.current.scrollTop = 0;
+    }
+  }, [scenarioNumber]);
+
   const routeOptions = [
     {
       key: "default-route",
@@ -152,7 +160,10 @@ const ScenarioPanel = ({
           </div>
 
           <div className="pointer-events-auto px-4 pb-4">
-            <div className="max-h-[35vh] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur">
+            <div
+              ref={bottomPanelRef}
+              className="max-h-[35vh] overflow-y-auto rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur"
+            >
               <RouteSelection
                 routeOptions={routeOptions}
                 selectedRouteIndex={selectedRouteIndex}
