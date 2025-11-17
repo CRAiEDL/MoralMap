@@ -198,6 +198,16 @@ const MapRoute = () => {
 
   const isMobile = viewport.width > 0 ? viewport.width <= 768 : false;
 
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    if (maxBounds && (!isMobile || !hasUserDraggedMap)) {
+      mapInstance.setMaxBounds(maxBounds);
+    } else {
+      mapInstance.setMaxBounds(null);
+    }
+  }, [mapInstance, maxBounds, isMobile, hasUserDraggedMap]);
+
   const mapPaddingOptions = useMemo(() => {
     const width = viewport.width || 0;
     const height = viewport.height || 0;
