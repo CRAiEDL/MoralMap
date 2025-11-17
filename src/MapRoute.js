@@ -28,6 +28,7 @@ const MapRoute = () => {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [selectedLabel, setSelectedLabel] = useState("default");
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0); // 0 = default
+  const [hasUserDraggedMap, setHasUserDraggedMap] = useState(false);
   const [error, setError] = useState(null);
   const [sessionId] = useState(uuidv4());
   const [mapInstance, setMapInstance] = useState(null);
@@ -197,6 +198,16 @@ const MapRoute = () => {
 
   const isMobile = viewport.width > 0 ? viewport.width <= 768 : false;
 
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    if (maxBounds && (!isMobile || !hasUserDraggedMap)) {
+      mapInstance.setMaxBounds(maxBounds);
+    } else {
+      mapInstance.setMaxBounds(null);
+    }
+  }, [mapInstance, maxBounds, isMobile, hasUserDraggedMap]);
+
   const mapPaddingOptions = useMemo(() => {
     const width = viewport.width || 0;
     const height = viewport.height || 0;
@@ -225,6 +236,8 @@ const MapRoute = () => {
   useEffect(() => {
     if (!mapInstance || !bounds) return;
 
+    if (isMobile && hasUserDraggedMap) return;
+
     mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
 
     if (isMobile) {
@@ -237,7 +250,23 @@ const MapRoute = () => {
         mapInstance.panBy([0, deltaY], { animate: false });
       }
     }
-  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height]);
+  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height, hasUserDraggedMap]);
+
+  useEffect(() => {
+    if (!mapInstance || !isMobile) return;
+
+    const handleDragStart = () => setHasUserDraggedMap(true);
+
+    mapInstance.on("dragstart", handleDragStart);
+
+    return () => {
+      mapInstance.off("dragstart", handleDragStart);
+    };
+  }, [mapInstance, isMobile]);
+
+  useEffect(() => {
+    setHasUserDraggedMap(false);
+  }, [scenarioIndex]);
 
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;

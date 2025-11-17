@@ -43,11 +43,6 @@ const Routing = ({
       });
 
       setLocalRoutes(newRoutes);
-      const allCoords = newRoutes.flatMap((r) => (r?.coords ? r.coords : []));
-      if (allCoords.length) {
-        const bounds = L.latLngBounds(allCoords);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: false });
-      }
     }
 
     loadRoutes();
