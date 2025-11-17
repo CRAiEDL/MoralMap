@@ -31,6 +31,7 @@ const MapRoute = () => {
   const [error, setError] = useState(null);
   const [sessionId] = useState(uuidv4());
   const [mapInstance, setMapInstance] = useState(null);
+  const [userAdjustedView, setUserAdjustedView] = useState(false);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   useEffect(() => {
     localStorage.setItem("sessionId", sessionId);
@@ -225,6 +226,8 @@ const MapRoute = () => {
   useEffect(() => {
     if (!mapInstance || !bounds) return;
 
+    if (isMobile && userAdjustedView) return;
+
     mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
 
     if (isMobile) {
@@ -237,7 +240,25 @@ const MapRoute = () => {
         mapInstance.panBy([0, deltaY], { animate: false });
       }
     }
-  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height]);
+  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height, userAdjustedView]);
+
+  useEffect(() => {
+    if (!mapInstance || !isMobile) return;
+
+    const markUserAdjustment = () => setUserAdjustedView(true);
+
+    mapInstance.on("movestart", markUserAdjustment);
+    mapInstance.on("zoomstart", markUserAdjustment);
+
+    return () => {
+      mapInstance.off("movestart", markUserAdjustment);
+      mapInstance.off("zoomstart", markUserAdjustment);
+    };
+  }, [mapInstance, isMobile]);
+
+  useEffect(() => {
+    setUserAdjustedView(false);
+  }, [scenarioIndex, isMobile]);
 
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
