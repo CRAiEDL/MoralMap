@@ -196,7 +196,24 @@ const MapRoute = () => {
     return bounds.pad(0.25);
   }, [bounds]);
 
-  const isMobile = viewport.width > 0 ? viewport.width <= 768 : false;
+  const isMobile = useMemo(() => {
+    if (typeof window === "undefined") return false;
+
+    const fallbackWidth = window.innerWidth || 0;
+    const fallbackHeight = window.innerHeight || 0;
+    const width = viewport.width || fallbackWidth;
+    const height = viewport.height || fallbackHeight;
+    const smallestSide = Math.min(width, height || fallbackHeight);
+
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const isTouch = typeof navigator !== "undefined" ? navigator.maxTouchPoints > 0 : false;
+    const uaMatchesMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+    if (uaMatchesMobile) return true;
+    if (isTouch && smallestSide <= 1024) return true;
+
+    return width <= 768;
+  }, [viewport.width, viewport.height]);
 
   useEffect(() => {
     if (!mapInstance) return;
