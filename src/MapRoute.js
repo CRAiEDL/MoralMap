@@ -220,8 +220,11 @@ const MapRoute = () => {
       };
     }
 
-    const topReserved = Math.round(height * 0.15);
+    const targetVerticalCenterRatio = 0.4;
     const bottomReserved = Math.round(height * 0.35);
+    const topReserved = Math.round(
+      Math.max(height * 0.05, bottomReserved + height * (targetVerticalCenterRatio - 0.5) * 2)
+    );
     const sidePadding = Math.max(8, Math.round(width * 0.02));
     const paddingTopLeft = [sidePadding, topReserved + 8];
     const paddingBottomRight = [sidePadding, bottomReserved + 8];
@@ -229,7 +232,7 @@ const MapRoute = () => {
     return {
       bounds: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
       fit: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
-      meta: { topReserved, bottomReserved },
+      targetVerticalCenterRatio,
     };
   }, [isMobile, viewport.height, viewport.width]);
 
@@ -241,16 +244,23 @@ const MapRoute = () => {
     mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
 
     if (isMobile) {
-      const height = viewport.height || 0;
-      const topReserved = mapPaddingOptions.meta?.topReserved ?? Math.round(height * 0.15);
-      const bottomReserved = mapPaddingOptions.meta?.bottomReserved ?? Math.round(height * 0.35);
-      const deltaY = (topReserved - bottomReserved) / 2;
+      const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
+      const mapSize = mapInstance.getSize();
+      const height = mapSize?.y ?? viewport.height ?? 0;
+      const deltaY = (targetRatio - 0.5) * height;
 
       if (deltaY !== 0) {
         mapInstance.panBy([0, deltaY], { animate: false });
       }
     }
-  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height, hasUserDraggedMap]);
+  }, [
+    mapInstance,
+    bounds,
+    mapPaddingOptions,
+    isMobile,
+    viewport.height,
+    hasUserDraggedMap,
+  ]);
 
   useEffect(() => {
     if (!mapInstance || !isMobile) return;
