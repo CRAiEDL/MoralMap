@@ -237,7 +237,7 @@ const MapRoute = () => {
       };
     }
 
-    const targetVerticalCenterRatio = 0.4;
+    const targetVerticalCenterRatio = 0.3;
     const bottomReserved = Math.round(height * 0.35);
     const topReserved = Math.round(
       Math.max(height * 0.05, bottomReserved + height * (targetVerticalCenterRatio - 0.5) * 2)
