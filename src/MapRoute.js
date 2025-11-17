@@ -30,10 +30,23 @@ const MapRoute = () => {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0); // 0 = default
   const [error, setError] = useState(null);
   const [sessionId] = useState(uuidv4());
+  const [mapInstance, setMapInstance] = useState(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   useEffect(() => {
     localStorage.setItem("sessionId", sessionId);
   }, [sessionId]);
   const router = useRouter();
+
+  useEffect(() => {
+    const updateViewport = () => {
+      if (typeof window === "undefined") return;
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     fetch(withBasePath("/api/route-endpoints"))
@@ -182,6 +195,50 @@ const MapRoute = () => {
     return bounds.pad(0.25);
   }, [bounds]);
 
+  const isMobile = viewport.width > 0 ? viewport.width <= 768 : false;
+
+  const mapPaddingOptions = useMemo(() => {
+    const width = viewport.width || 0;
+    const height = viewport.height || 0;
+
+    if (!isMobile) {
+      const desktopPadding = 50;
+      return {
+        bounds: { padding: [desktopPadding, desktopPadding], maxZoom: 15 },
+        fit: { padding: [desktopPadding, desktopPadding], maxZoom: 15 },
+      };
+    }
+
+    const topReserved = Math.round(height * 0.15);
+    const bottomReserved = Math.round(height * 0.35);
+    const sidePadding = Math.max(8, Math.round(width * 0.02));
+    const paddingTopLeft = [sidePadding, topReserved + 8];
+    const paddingBottomRight = [sidePadding, bottomReserved + 8];
+
+    return {
+      bounds: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
+      fit: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
+      meta: { topReserved, bottomReserved },
+    };
+  }, [isMobile, viewport.height, viewport.width]);
+
+  useEffect(() => {
+    if (!mapInstance || !bounds) return;
+
+    mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
+
+    if (isMobile) {
+      const height = viewport.height || 0;
+      const topReserved = mapPaddingOptions.meta?.topReserved ?? Math.round(height * 0.15);
+      const bottomReserved = mapPaddingOptions.meta?.bottomReserved ?? Math.round(height * 0.35);
+      const deltaY = (topReserved - bottomReserved) / 2;
+
+      if (deltaY !== 0) {
+        mapInstance.panBy([0, deltaY], { animate: false });
+      }
+    }
+  }, [mapInstance, bounds, mapPaddingOptions, isMobile, viewport.height]);
+
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
 
@@ -209,18 +266,19 @@ const MapRoute = () => {
       )}
       <MapContainer
         bounds={bounds}
-        boundsOptions={{ padding: [50, 50], maxZoom: 15 }}
+        boundsOptions={mapPaddingOptions.bounds}
         maxBounds={maxBounds ?? undefined}
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={false}
-        doubleClickZoom={false}
-        touchZoom={false}
-        boxZoom={false}
-        keyboard={false}
-        zoomControl={false}
-        dragging={false}
-        inertia={false}
+        scrollWheelZoom={isMobile}
+        doubleClickZoom={isMobile}
+        touchZoom={isMobile}
+        boxZoom={isMobile}
+        keyboard={isMobile}
+        zoomControl={isMobile}
+        dragging={isMobile}
+        inertia={isMobile}
+        whenCreated={setMapInstance}
       >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
