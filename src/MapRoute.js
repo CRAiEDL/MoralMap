@@ -218,12 +218,17 @@ const MapRoute = () => {
   useEffect(() => {
     if (!mapInstance) return;
 
-    if (maxBounds && (!isMobile || !hasUserDraggedMap)) {
+    if (isMobile) {
+      mapInstance.setMaxBounds(null);
+      return;
+    }
+
+    if (maxBounds) {
       mapInstance.setMaxBounds(maxBounds);
     } else {
       mapInstance.setMaxBounds(null);
     }
-  }, [mapInstance, maxBounds, isMobile, hasUserDraggedMap]);
+  }, [mapInstance, maxBounds, isMobile]);
 
   const mapPaddingOptions = useMemo(() => {
     const width = viewport.width || 0;
@@ -282,6 +287,21 @@ const MapRoute = () => {
   useEffect(() => {
     if (!mapInstance || !isMobile) return;
 
+    const handleFirstMove = () => {
+      setHasUserDraggedMap(true);
+      mapInstance.setMaxBounds(null);
+    };
+
+    mapInstance.once("movestart", handleFirstMove);
+
+    return () => {
+      mapInstance.off("movestart", handleFirstMove);
+    };
+  }, [mapInstance, isMobile]);
+
+  useEffect(() => {
+    if (!mapInstance || !isMobile) return;
+
     const handleDragStart = () => setHasUserDraggedMap(true);
 
     mapInstance.on("dragstart", handleDragStart);
@@ -323,7 +343,7 @@ const MapRoute = () => {
       <MapContainer
         bounds={bounds}
         boundsOptions={mapPaddingOptions.bounds}
-        maxBounds={maxBounds ?? undefined}
+        maxBounds={!isMobile && maxBounds ? maxBounds : undefined}
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={isMobile}
