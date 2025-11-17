@@ -270,12 +270,12 @@ const MapRoute = () => {
         maxBounds={maxBounds ?? undefined}
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={false}
-        doubleClickZoom={false}
+        scrollWheelZoom={isMobile}
+        doubleClickZoom={isMobile}
         touchZoom={isMobile}
-        boxZoom={false}
-        keyboard={false}
-        zoomControl={false}
+        boxZoom={isMobile}
+        keyboard={isMobile}
+        zoomControl={isMobile}
         dragging={isMobile}
         inertia={isMobile}
         whenCreated={setMapInstance}
