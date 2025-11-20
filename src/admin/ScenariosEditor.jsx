@@ -395,6 +395,9 @@ function AlternativeRouteEditor({
         selectedIndex={selection?.value_name ?? null}
         onSelect={(idx) => onSelect?.("value_name", idx)}
       />
+      <p className="text-xs text-gray-500 mb-1">
+        You can reference the route time (default + TTS) with {"{time}"} inside the description.
+      </p>
       <TextListInput
         label="Descriptions (pool)"
         values={route.description}
