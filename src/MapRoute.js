@@ -65,6 +65,27 @@ const MapRoute = () => {
         setScenarios(
           builtScenarios.map((sc) => {
             const defaultTime = sc.default_route_time;
+            const defaultRouteTitleCandidate = sc?.default_route_title;
+            const defaultRouteTitle =
+              typeof defaultRouteTitleCandidate === "string" &&
+              defaultRouteTitleCandidate.trim() !== ""
+                ? defaultRouteTitleCandidate
+                : "Time Efficient Route";
+            const defaultRouteDescriptionCandidate = Array.isArray(sc?.default_route_description)
+              ? sc.default_route_description[0]
+              : sc?.default_route_description;
+            const defaultRouteDescription =
+              typeof defaultRouteDescriptionCandidate === "string"
+                ? defaultRouteDescriptionCandidate.replaceAll(
+                    "{time}",
+                    `${Math.round(typeof defaultTime === "number" ? defaultTime : 0)}`
+                  )
+                : "";
+            const defaultRouteDescriptionWithFallback =
+              defaultRouteDescription ||
+              (typeof defaultTime === "number"
+                ? `Approximately ${Math.round(defaultTime)} minutes`
+                : "");
             const alternatives = (sc.choice_list || []).map((c) => {
               const middlePoints = Array.isArray(c.middle_point)
                 ? c.middle_point.filter(isValidCoord)
@@ -115,6 +136,8 @@ const MapRoute = () => {
               start: sc.start,
               end: sc.end,
               defaultTime,
+              defaultRouteTitle,
+              defaultRouteDescription: defaultRouteDescriptionWithFallback,
               alternatives,
             };
           })
@@ -196,10 +219,12 @@ const MapRoute = () => {
 
   const panelLabel =
     selectedRouteIndex === 0
-      ? "Time Efficient Route"
+      ? currentScenario?.defaultRouteTitle || "Time Efficient Route"
       : currentAlternative?.label || currentScenario?.scenarioName || "Alternative";
   const panelDescription =
-    selectedRouteIndex === 0 ? "" : currentAlternative?.description || "";
+    selectedRouteIndex === 0
+      ? currentScenario?.defaultRouteDescription || ""
+      : currentAlternative?.description || "";
   const panelTime =
     selectedRouteIndex === 0
       ? defaultTime
@@ -456,6 +481,8 @@ const MapRoute = () => {
           totalScenarios={scenarios.length}
           defaultTime={defaultTime}
           scenarioText={scenarioText}
+          defaultRouteTitle={currentScenario.defaultRouteTitle}
+          defaultRouteDescription={currentScenario.defaultRouteDescription}
           activeLabel={panelLabel}
           activeDescription={panelDescription}
           activeTime={panelTime}

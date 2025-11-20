@@ -40,6 +40,11 @@ const ensureStringList = (value, fallback) => {
   return fallback;
 };
 
+const DEFAULT_ROUTE_TITLE_FALLBACK = ["Time Efficient Route"];
+const DEFAULT_ROUTE_DESCRIPTION_FALLBACK = [
+  "The default route prioritizes safety and takes about {time} minutes.",
+];
+
 const createDefaultRoute = (scenario) => {
   const start = ensureCoordList(scenario?.start, [[0, 0]]);
   const end = ensureCoordList(scenario?.end, [[0, 0]]);
@@ -103,6 +108,14 @@ const normalizeScenario = (scenario) => {
     ...scenario,
     start,
     end,
+    default_route_title: ensureStringList(
+      scenario?.default_route_title,
+      DEFAULT_ROUTE_TITLE_FALLBACK
+    ),
+    default_route_description: ensureStringList(
+      scenario?.default_route_description,
+      DEFAULT_ROUTE_DESCRIPTION_FALLBACK
+    ),
     default_route_time: ensureNumberList(scenario?.default_route_time, [0]),
     choice_list: normalizedRoutes,
     randomly_preselect_route: randomlyPreselect,
@@ -138,6 +151,16 @@ const ensureSelectionForScenario = (current = {}, scenario) => {
     start: clampIndex(current.start, startLength),
     end: clampIndex(current.end, endLength),
     default_route_time: clampIndex(current.default_route_time, defaultRouteLength),
+    default_route_title: clampIndex(
+      current.default_route_title,
+      Array.isArray(scenario?.default_route_title) ? scenario.default_route_title.length : 0
+    ),
+    default_route_description: clampIndex(
+      current.default_route_description,
+      Array.isArray(scenario?.default_route_description)
+        ? scenario.default_route_description.length
+        : 0
+    ),
     choice_list: choiceList.map((route, index) => {
       const existing = Array.isArray(current.choice_list) ? current.choice_list[index] : {};
 
@@ -568,6 +591,27 @@ function ScenarioForm({
         selectedIndex={selection?.default_route_time ?? null}
         onSelect={(idx) => onSelectField?.("default_route_time", idx)}
       />
+      <TextListInput
+        label="Default route title (pool)"
+        values={scenario.default_route_title}
+        onChange={(val) => onChange({ default_route_title: val })}
+        placeholder="e.g. Time Efficient Route"
+        selectedIndex={selection?.default_route_title ?? null}
+        onSelect={(idx) => onSelectField?.("default_route_title", idx)}
+      />
+      <div className="space-y-1">
+        <p className="text-xs text-gray-500">
+          Use {"{time}"} to insert the default route time for the selected option.
+        </p>
+        <TextListInput
+          label="Default route description (pool)"
+          values={scenario.default_route_description}
+          onChange={(val) => onChange({ default_route_description: val })}
+          placeholder="e.g. Prioritizes safety and takes about {time} minutes"
+          selectedIndex={selection?.default_route_description ?? null}
+          onSelect={(idx) => onSelectField?.("default_route_description", idx)}
+        />
+      </div>
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -694,6 +738,8 @@ export default function ScenariosEditor() {
           start: [[0, 0]],
           end: [[0, 0]],
           default_route_time: [0],
+          default_route_title: DEFAULT_ROUTE_TITLE_FALLBACK,
+          default_route_description: DEFAULT_ROUTE_DESCRIPTION_FALLBACK,
           choice_list: [],
           scenario_name: `Scenario ${nextIndex}`,
           randomly_preselect_route: false,

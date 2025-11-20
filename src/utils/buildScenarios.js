@@ -38,6 +38,12 @@ export function buildScenarios(cfg = {}) {
       start: pickOne(sc.start),
       end: pickOne(sc.end),
       default_route_time: pickOne(sc.default_route_time),
+      default_route_title: Array.isArray(sc.default_route_title)
+        ? pickOne(sc.default_route_title)
+        : sc.default_route_title,
+      default_route_description: Array.isArray(sc.default_route_description)
+        ? pickOne(sc.default_route_description)
+        : sc.default_route_description,
       scenario_name: Array.isArray(sc.scenario_name)
         ? pickOne(sc.scenario_name)
         : sc.scenario_name,
