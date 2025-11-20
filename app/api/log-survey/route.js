@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { redis } from '../_redis';
-import { get } from '@vercel/edge-config';
+import { loadConfig } from '../_config';
 
 export const runtime = 'nodejs';
 
@@ -76,7 +76,8 @@ export async function POST(req) {
 
   let surveyConfig;
   try {
-    surveyConfig = await get('surveyConfig');
+    const config = (await loadConfig()) || {};
+    surveyConfig = config?.surveyConfig;
   } catch {
     // ignore missing config; fall back to raw responses
   }
