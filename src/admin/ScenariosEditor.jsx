@@ -50,6 +50,7 @@ const createDefaultRoute = (scenario) => {
   return {
     middle_point: [mid.every((n) => typeof n === "number" && !Number.isNaN(n)) ? mid : [0, 0]],
     tts: [0],
+    tts_is_percentage: false,
     value_name: [""],
     description: [""],
     preselected: false,
@@ -63,6 +64,10 @@ const normalizeRoute = (route, scenario) => {
     ...route,
     middle_point: ensureCoordList(route?.middle_point, fallback.middle_point),
     tts: ensureNumberList(route?.tts, fallback.tts),
+    tts_is_percentage:
+      typeof route?.tts_is_percentage === "boolean"
+        ? route.tts_is_percentage
+        : fallback.tts_is_percentage,
     value_name: ensureStringList(route?.value_name, fallback.value_name),
     description: ensureStringList(route?.description, fallback.description),
     preselected: typeof route?.preselected === "boolean" ? route.preselected : false,
@@ -227,6 +232,7 @@ function NumberListInput({
   onChange,
   selectedIndex = null,
   onSelect,
+  labelSuffix = null,
 }) {
   const nums = Array.isArray(values) ? values : [];
 
@@ -240,7 +246,10 @@ function NumberListInput({
 
   return (
     <div className="mb-3">
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="block text-sm font-medium mb-1 flex items-center gap-2">
+        <span>{label}</span>
+        {labelSuffix}
+      </label>
       {nums.map((n, i) => (
         <div
           key={i}
@@ -386,6 +395,17 @@ function AlternativeRouteEditor({
         onChange={(val) => onChange({ tts: val })}
         selectedIndex={selection?.tts ?? null}
         onSelect={(idx) => onSelect?.("tts", idx)}
+        labelSuffix={
+          <label className="flex items-center gap-1 text-xs font-normal">
+            <input
+              type="checkbox"
+              checked={!!route?.tts_is_percentage}
+              onChange={(e) => onChange({ tts_is_percentage: e.target.checked })}
+              className="h-4 w-4"
+            />
+            <span>Percentage</span>
+          </label>
+        }
       />
       <TextListInput
         label="Value names (pool)"
@@ -520,6 +540,7 @@ function ScenarioForm({
                   {
                     middle_point: [mid],
                     tts: [0],
+                    tts_is_percentage: false,
                     value_name: [""],
                     description: [""],
                     preselected: false,

@@ -62,12 +62,19 @@ const MapRoute = () => {
             const defaultTime = sc.default_route_time;
             const alternatives = (sc.choice_list || []).map((c) => {
               const rawTts = c?.tts;
-              const tts =
+              const isPercentage = Boolean(c?.tts_is_percentage);
+              const ttsValue =
                 typeof rawTts === "number"
                   ? rawTts
                   : Array.isArray(rawTts)
                   ? rawTts[0] ?? 0
                   : 0;
+              const ttsMinutes =
+                typeof defaultTime === "number"
+                  ? isPercentage
+                    ? (defaultTime * ttsValue) / 100
+                    : ttsValue
+                  : ttsValue;
               const labelCandidate = c?.value_name;
               const label =
                 typeof labelCandidate === "string" && labelCandidate.trim() !== ""
@@ -81,8 +88,10 @@ const MapRoute = () => {
                   : "";
               return {
                 middle: c.middle_point,
-                tts,
-                totalTimeMinutes: defaultTime + tts,
+                tts: ttsMinutes,
+                ttsIsPercentage: isPercentage,
+                totalTimeMinutes:
+                  typeof defaultTime === "number" ? defaultTime + ttsMinutes : ttsMinutes,
                 preselected: Boolean(c.preselected),
                 label,
                 description,

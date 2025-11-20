@@ -44,6 +44,7 @@ export function buildScenarios(cfg = {}) {
       choice_list: (sc.choice_list || []).map((route) => ({
         middle_point: pickOne(route.middle_point),
         tts: pickOne(route.tts),
+        tts_is_percentage: route.tts_is_percentage,
         value_name: Array.isArray(route.value_name)
           ? pickOne(route.value_name)
           : route.value_name,
