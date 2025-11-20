@@ -80,21 +80,26 @@ const MapRoute = () => {
                 typeof labelCandidate === "string" && labelCandidate.trim() !== ""
                   ? labelCandidate
                   : sc.scenario_name;
-              const description =
+              const totalTimeMinutes =
+                typeof defaultTime === "number" ? defaultTime + ttsMinutes : ttsMinutes;
+              const rawDescription =
                 typeof c?.description === "string"
                   ? c.description
                   : Array.isArray(c?.description)
                   ? c.description[0] ?? ""
                   : "";
+              const resolvedDescription =
+                typeof rawDescription === "string"
+                  ? rawDescription.replaceAll("{time}", `${Math.round(totalTimeMinutes)}`)
+                  : "";
               return {
                 middle: c.middle_point,
                 tts: ttsMinutes,
                 ttsIsPercentage: isPercentage,
-                totalTimeMinutes:
-                  typeof defaultTime === "number" ? defaultTime + ttsMinutes : ttsMinutes,
+                totalTimeMinutes,
                 preselected: Boolean(c.preselected),
                 label,
-                description,
+                description: resolvedDescription,
               };
             });
             return {

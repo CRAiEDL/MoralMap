@@ -415,14 +415,19 @@ function AlternativeRouteEditor({
         selectedIndex={selection?.value_name ?? null}
         onSelect={(idx) => onSelect?.("value_name", idx)}
       />
-      <TextListInput
-        label="Descriptions (pool)"
-        values={route.description}
-        onChange={(val) => onChange({ description: val })}
-        placeholder="Brief explanation for participants"
-        selectedIndex={selection?.description ?? null}
-        onSelect={(idx) => onSelect?.("description", idx)}
-      />
+      <div className="space-y-1">
+        <p className="text-xs text-gray-500">
+          Use {"{time}"} to insert this route’s total time (default route time + TTS).
+        </p>
+        <TextListInput
+          label="Descriptions (pool)"
+          values={route.description}
+          onChange={(val) => onChange({ description: val })}
+          placeholder="Brief explanation for participants"
+          selectedIndex={selection?.description ?? null}
+          onSelect={(idx) => onSelect?.("description", idx)}
+        />
+      </div>
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
