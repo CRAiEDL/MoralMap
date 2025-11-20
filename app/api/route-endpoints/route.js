@@ -1,9 +1,7 @@
 // app/api/route-endpoints/route.js
 import { NextResponse } from 'next/server';
-import { get } from '@vercel/edge-config';
+import { loadConfig, saveConfig } from '../_config';
 import { buildScenarios } from '../../../src/utils/buildScenarios';
-
-const EDGE_CONFIG_API_BASE = 'https://api.vercel.com/v1/edge-config';
 
 export const runtime = 'nodejs';
 
@@ -15,74 +13,13 @@ const clone = (value) => {
   return JSON.parse(JSON.stringify(value));
 };
 
-const parseEdgeConfigConnection = (connectionString) => {
-  if (!connectionString) return null;
-  try {
-    const url = new URL(connectionString);
-    const edgeConfigId = url.pathname.replace(/^\//, '');
-    const token = url.searchParams.get('token');
-    if (!edgeConfigId || !token) return null;
-    return { edgeConfigId, token };
-  } catch {
-    return null;
-  }
-};
-
-const getAdminCredentials = () => {
-  let edgeConfigId = process.env.EDGE_CONFIG_ID || '';
-  let token =
-    process.env.VERCEL_API_TOKEN ||
-    process.env.VERCEL_OIDC_TOKEN ||
-    process.env.EDGE_CONFIG_ADMIN_TOKEN ||
-    process.env.EDGE_CONFIG_TOKEN ||
-    '';
-
-  if ((!edgeConfigId || !token) && process.env.EDGE_CONFIG) {
-    const parsed = parseEdgeConfigConnection(process.env.EDGE_CONFIG);
-    if (parsed) {
-      edgeConfigId = edgeConfigId || parsed.edgeConfigId;
-      token = token || parsed.token;
-    }
-  }
-
-  if (!edgeConfigId || !token) {
-    throw new Error('Missing Edge Config admin credentials');
-  }
-
-  return { edgeConfigId, token };
-};
-
-const updateEdgeConfigItems = async (items) => {
-  if (!items.length) return;
-  const { edgeConfigId, token } = getAdminCredentials();
-
-  const res = await fetch(`${EDGE_CONFIG_API_BASE}/${edgeConfigId}/items`, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...(process.env.EDGE_CONFIG_DIGEST
-        ? { 'X-Vercel-Edge-Config-Digest': process.env.EDGE_CONFIG_DIGEST }
-        : {}),
-    },
-    body: JSON.stringify({ items }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Edge Config update failed (${res.status}): ${text}`);
-  }
-};
-
 export async function GET() {
   try {
-    // Read everything from Edge Config (read-only)
-    const [scenariosConfig, textsConfig, instructionsConfig, surveyConfig] = await Promise.all([
-      get('scenariosConfig'),
-      get('textsConfig'),
-      get('instructionsConfig'),
-      get('surveyConfig'),
-    ]);
+    const config = (await loadConfig()) || {};
+    const scenariosConfig = config?.scenariosConfig;
+    const textsConfig = config?.textsConfig;
+    const instructionsConfig = config?.instructionsConfig;
+    const surveyConfig = config?.surveyConfig;
 
     const rawScenarios = scenariosConfig?.scenarios ?? {};
     const settings = scenariosConfig?.settings ?? {};
@@ -129,7 +66,8 @@ export async function PATCH(req) {
   }
 
   try {
-    const existing = clone((await get('scenariosConfig')) || {});
+    const fullConfig = (await loadConfig()) || {};
+    const existing = clone(fullConfig?.scenariosConfig || {});
     const updated = existing && typeof existing === 'object' ? existing : {};
 
     for (const key of allowedKeys) {
@@ -150,13 +88,9 @@ export async function PATCH(req) {
       updated[key] = body[key];
     }
 
-    await updateEdgeConfigItems([
-      {
-        operation: 'upsert',
-        key: 'scenariosConfig',
-        value: updated,
-      },
-    ]);
+    const nextConfig = { ...fullConfig, scenariosConfig: updated };
+
+    await saveConfig(nextConfig);
 
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -173,6 +107,7 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  const fullConfig = (await loadConfig()) || {};
   const updates = [];
 
   if ('instructions' in body) {
@@ -180,7 +115,6 @@ export async function POST(req) {
       return NextResponse.json({ error: 'instructions must be an array' }, { status: 400 });
     }
     updates.push({
-      operation: 'upsert',
       key: 'instructionsConfig',
       value: { steps: body.instructions },
     });
@@ -197,7 +131,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'ageConfirmationText must be a string' }, { status: 400 });
     }
 
-    const existingTexts = clone((await get('textsConfig')) || {});
+    const existingTexts = clone(fullConfig?.textsConfig || {});
     const nextTexts = existingTexts && typeof existingTexts === 'object' ? existingTexts : {};
 
     if ('consentText' in body) {
@@ -211,7 +145,6 @@ export async function POST(req) {
     }
 
     updates.push({
-      operation: 'upsert',
       key: 'textsConfig',
       value: nextTexts,
     });
@@ -222,12 +155,11 @@ export async function POST(req) {
       return NextResponse.json({ error: 'survey must be an array' }, { status: 400 });
     }
 
-    const existingSurvey = clone((await get('surveyConfig')) || {});
+    const existingSurvey = clone(fullConfig?.surveyConfig || {});
     const nextSurvey = existingSurvey && typeof existingSurvey === 'object' ? existingSurvey : {};
     nextSurvey.survey = body.survey;
 
     updates.push({
-      operation: 'upsert',
       key: 'surveyConfig',
       value: nextSurvey,
     });
@@ -238,7 +170,13 @@ export async function POST(req) {
   }
 
   try {
-    await updateEdgeConfigItems(updates);
+    const nextConfig = { ...fullConfig };
+
+    for (const update of updates) {
+      nextConfig[update.key] = update.value;
+    }
+
+    await saveConfig(nextConfig);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Failed to update config', err);

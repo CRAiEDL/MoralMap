@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { redis } from '../_redis';
-import { get } from '@vercel/edge-config';
+import { loadConfig } from '../_config';
 
 export const runtime = 'nodejs';
 
@@ -106,7 +106,8 @@ export async function POST(req) {
 
   let totalScenarios = 0;
   try {
-    const scenariosConfig = await get('scenariosConfig');
+    const config = (await loadConfig()) || {};
+    const scenariosConfig = config?.scenariosConfig;
     totalScenarios = determineTotalScenarios(scenariosConfig || {});
   } catch {
     // ignore config lookup failures; we'll infer size below
