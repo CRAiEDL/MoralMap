@@ -10,12 +10,28 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
+const DEFAULT_ROUTE_COLOR = "#1452EE";
+const ALTERNATIVE_ROUTE_COLORS = ["#4B78F2", "#7897F6", "#A5B6FA", "#CFD9FD"];
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x.src || markerIcon2x,
   iconUrl: markerIcon.src || markerIcon,
   shadowUrl: markerShadow.src || markerShadow,
 });
+
+const createNumberedIcon = (label) =>
+  L.divIcon({
+    className: "",
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    html: `
+      <svg width="36" height="36" viewBox="0 0 24 24">
+        <path fill="${DEFAULT_ROUTE_COLOR}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <text x="12" y="16" text-anchor="middle" font-size="10" font-family="Arial" font-weight="bold" fill="#fff">${label}</text>
+      </svg>
+    `,
+  });
 
 function isValidCoord(point) {
   return (
@@ -30,9 +46,6 @@ const clampIndex = (idx, length) => {
   const value = typeof idx === "number" && idx >= 0 ? idx : 0;
   return Math.min(value, length - 1);
 };
-
-const DEFAULT_ROUTE_COLOR = "#1452EE";
-const ALTERNATIVE_ROUTE_COLORS = ["#4B78F2", "#7897F6", "#A5B6FA", "#CFD9FD"];
 
 const makePolyline = (points, color, weight, routeIndex = null) => ({
   points: points.filter(isValidCoord),
@@ -73,6 +86,17 @@ export default function ScenarioMapPreview({
   );
 
   const [previewRoutes, setPreviewRoutes] = useState([]);
+
+  const getMiddleIcon = useMemo(() => {
+    const cache = new Map();
+    return (index) => {
+      const label = index + 1;
+      if (!cache.has(label)) {
+        cache.set(label, createNumberedIcon(label));
+      }
+      return cache.get(label);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isValidCoord(activeStart) || !isValidCoord(activeEnd)) {
@@ -201,7 +225,12 @@ export default function ScenarioMapPreview({
   }
 
   const middleMarkers = alternativeSelections.flatMap(({ middlePoints, routeIndex }) =>
-    middlePoints.map((position, middleIndex) => ({ position, routeIndex, middleIndex }))
+    middlePoints.map((position, middleIndex) => ({
+      position,
+      routeIndex,
+      middleIndex,
+      icon: getMiddleIcon(middleIndex),
+    }))
   );
 
   const handleAddMiddle = (routeIndex) => (event) => {
@@ -281,11 +310,12 @@ export default function ScenarioMapPreview({
             icon={endIcon}
             eventHandlers={{ dragend: handleDrag("end") }}
           />
-          {middleMarkers.map(({ position, routeIndex, middleIndex }) => (
+          {middleMarkers.map(({ position, routeIndex, middleIndex, icon }) => (
             <Marker
               key={`middle-${routeIndex}-${middleIndex}`}
               position={position}
               draggable
+              icon={icon}
               eventHandlers={{
                 dragend: handleDrag("middle", routeIndex, middleIndex),
                 contextmenu: handleMiddleContextMenu(routeIndex, middleIndex),
