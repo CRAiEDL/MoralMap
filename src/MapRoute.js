@@ -453,14 +453,14 @@ const MapRoute = () => {
         maxBounds={!isMobile && maxBounds ? maxBounds : undefined}
         maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={isMobile}
-        doubleClickZoom={isMobile}
+        scrollWheelZoom
+        doubleClickZoom
         touchZoom={isMobile}
-        boxZoom={isMobile}
-        keyboard={isMobile}
-        zoomControl={isMobile}
-        dragging={isMobile}
-        inertia={isMobile}
+        boxZoom
+        keyboard
+        zoomControl
+        dragging
+        inertia
         whenCreated={setMapInstance}
       >
         <TileLayer
