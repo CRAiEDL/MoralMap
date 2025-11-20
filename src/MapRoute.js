@@ -55,75 +55,103 @@ const MapRoute = () => {
   }, []);
 
   useEffect(() => {
-    fetch(withBasePath("/api/route-endpoints"))
-      .then((res) => res.json())
-      .then((data) => {
-        setRouteConfig(data);
-        const builtScenarios = Array.isArray(data.scenarios)
-          ? data.scenarios
-          : buildScenarios({ scenarios: data.scenarios, settings: data.settings });
-        setScenarios(
-          builtScenarios.map((sc) => {
-            const defaultTime = sc.default_route_time;
-            const alternatives = (sc.choice_list || []).map((c) => {
-              const middlePoints = Array.isArray(c.middle_point)
-                ? c.middle_point.filter(isValidCoord)
-                : [];
-              const rawTts = c?.tts;
-              const isPercentage = Boolean(c?.tts_is_percentage);
-              const ttsValue =
-                typeof rawTts === "number"
-                  ? rawTts
-                  : Array.isArray(rawTts)
-                  ? rawTts[0] ?? 0
-                  : 0;
-              const ttsMinutes =
-                typeof defaultTime === "number"
-                  ? isPercentage
-                    ? (defaultTime * ttsValue) / 100
-                    : ttsValue
-                  : ttsValue;
-              const labelCandidate = c?.value_name;
-              const label =
-                typeof labelCandidate === "string" && labelCandidate.trim() !== ""
-                  ? labelCandidate
-                  : sc.scenario_name;
-              const totalTimeMinutes =
-                typeof defaultTime === "number" ? defaultTime + ttsMinutes : ttsMinutes;
-              const rawDescription =
-                typeof c?.description === "string"
-                  ? c.description
-                  : Array.isArray(c?.description)
-                  ? c.description[0] ?? ""
-                  : "";
-              const resolvedDescription =
-                typeof rawDescription === "string"
-                  ? rawDescription.replaceAll("{time}", `${Math.round(totalTimeMinutes)}`)
-                  : "";
-              return {
-                middlePoints,
-                tts: ttsMinutes,
-                ttsIsPercentage: isPercentage,
-                totalTimeMinutes,
-                preselected: Boolean(c.preselected),
-                label,
-                description: resolvedDescription,
-              };
-            });
+    const cacheKey = "routeConfigCache";
+
+    const parseAndStore = (data) => {
+      setRouteConfig(data);
+      const builtScenarios = Array.isArray(data.scenarios)
+        ? data.scenarios
+        : buildScenarios({ scenarios: data.scenarios, settings: data.settings });
+      setScenarios(
+        builtScenarios.map((sc) => {
+          const defaultTime = sc.default_route_time;
+          const alternatives = (sc.choice_list || []).map((c) => {
+            const middlePoints = Array.isArray(c.middle_point)
+              ? c.middle_point.filter(isValidCoord)
+              : [];
+            const rawTts = c?.tts;
+            const isPercentage = Boolean(c?.tts_is_percentage);
+            const ttsValue =
+              typeof rawTts === "number"
+                ? rawTts
+                : Array.isArray(rawTts)
+                ? rawTts[0] ?? 0
+                : 0;
+            const ttsMinutes =
+              typeof defaultTime === "number"
+                ? isPercentage
+                  ? (defaultTime * ttsValue) / 100
+                  : ttsValue
+                : ttsValue;
+            const labelCandidate = c?.value_name;
+            const label =
+              typeof labelCandidate === "string" && labelCandidate.trim() !== ""
+                ? labelCandidate
+                : sc.scenario_name;
+            const totalTimeMinutes =
+              typeof defaultTime === "number" ? defaultTime + ttsMinutes : ttsMinutes;
+            const rawDescription =
+              typeof c?.description === "string"
+                ? c.description
+                : Array.isArray(c?.description)
+                ? c.description[0] ?? ""
+                : "";
+            const resolvedDescription =
+              typeof rawDescription === "string"
+                ? rawDescription.replaceAll("{time}", `${Math.round(totalTimeMinutes)}`)
+                : "";
             return {
-              scenarioName: sc.scenario_name,
-              start: sc.start,
-              end: sc.end,
-              defaultTime,
-              alternatives,
+              middlePoints,
+              tts: ttsMinutes,
+              ttsIsPercentage: isPercentage,
+              totalTimeMinutes,
+              preselected: Boolean(c.preselected),
+              label,
+              description: resolvedDescription,
             };
-          })
-        );
-      })
-      .catch((err) => {
+          });
+          return {
+            scenarioName: sc.scenario_name,
+            start: sc.start,
+            end: sc.end,
+            defaultTime,
+            alternatives,
+          };
+        })
+      );
+    };
+
+    const loadConfig = async () => {
+      try {
+        const cached =
+          typeof sessionStorage !== "undefined" ? sessionStorage.getItem(cacheKey) : null;
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          parseAndStore(parsed);
+          return;
+        }
+      } catch (err) {
+        console.warn("Failed to read cached route config:", err);
+      }
+
+      try {
+        const res = await fetch(withBasePath("/api/route-endpoints"));
+        const data = await res.json();
+        parseAndStore(data);
+        try {
+          if (typeof sessionStorage !== "undefined") {
+            sessionStorage.setItem(cacheKey, JSON.stringify(data));
+          }
+        } catch (err) {
+          console.warn("Failed to cache route config:", err);
+        }
+      } catch (err) {
         console.error("Failed to load route config:", err);
         setError("Failed to load route configuration. Please try again later.");
-      });
+      }
+    };
+
+    loadConfig();
   }, []);
 
   const handleChoice = async () => {
