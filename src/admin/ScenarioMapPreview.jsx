@@ -58,23 +58,17 @@ export default function ScenarioMapPreview({
   const activeEnd = endIndex !== null ? endOptions[endIndex] : endOptions[0];
 
   const alternatives = Array.isArray(scenario?.choice_list) ? scenario.choice_list : [];
-  const routeSelections = Array.isArray(selection?.choice_list) ? selection.choice_list : [];
 
   const alternativeSelections = useMemo(
     () =>
       alternatives.map((route, routeIndex) => {
-        const middleOptions = Array.isArray(route?.middle_point)
+        const middlePoints = Array.isArray(route?.middle_point)
           ? route.middle_point.filter(isValidCoord)
           : [];
-        const middleIndex = clampIndex(
-          routeSelections?.[routeIndex]?.middle_point,
-          middleOptions.length
-        );
-        const middlePoint = middleIndex !== null ? middleOptions[middleIndex] : middleOptions[0];
 
-        return { route, routeIndex, middlePoint, middleOptions };
+        return { route, routeIndex, middlePoints };
       }),
-    [alternatives, routeSelections]
+    [alternatives]
   );
 
   const [previewRoutes, setPreviewRoutes] = useState([]);
@@ -104,7 +98,7 @@ export default function ScenarioMapPreview({
       const fallbackRoutes = [
         buildFallbackRoute(defaultPoints, DEFAULT_ROUTE_COLOR, 6),
         ...alternativeSelections.map((selection, index) => {
-          const points = [activeStart, selection.middlePoint, activeEnd].filter(isValidCoord);
+          const points = [activeStart, ...selection.middlePoints, activeEnd].filter(isValidCoord);
           if (points.length < 2) return null;
           return buildFallbackRoute(
             points,
@@ -157,7 +151,7 @@ export default function ScenarioMapPreview({
     return null;
   }, [previewRoutes]);
 
-  const handleDrag = (type, routeIndex) => (event) => {
+  const handleDrag = (type, routeIndex, middleIndex) => (event) => {
     const { lat, lng } = event.target.getLatLng();
     const coords = [lat, lng];
 
@@ -184,15 +178,12 @@ export default function ScenarioMapPreview({
     if (type === "middle" && typeof routeIndex === "number") {
       const choiceList = Array.isArray(scenario.choice_list) ? scenario.choice_list.slice() : [];
       const route = choiceList[routeIndex];
-      if (!route) return;
-      const middleOptions = Array.isArray(route.middle_point) ? route.middle_point.slice() : [];
-      const currentSelection = clampIndex(routeSelections?.[routeIndex]?.middle_point, middleOptions.length);
-      const targetIndex = currentSelection ?? 0;
-      if (typeof targetIndex === "number") {
-        middleOptions[targetIndex] = coords;
-        choiceList[routeIndex] = { ...route, middle_point: middleOptions };
-        onChange({ choice_list: choiceList });
-      }
+      if (!route || !Array.isArray(route.middle_point)) return;
+      const middleOptions = route.middle_point.slice();
+      const targetIndex = typeof middleIndex === "number" && middleIndex >= 0 ? middleIndex : 0;
+      middleOptions[targetIndex] = coords;
+      choiceList[routeIndex] = { ...route, middle_point: middleOptions };
+      onChange({ choice_list: choiceList });
     }
   };
 
@@ -206,12 +197,9 @@ export default function ScenarioMapPreview({
     );
   }
 
-  const middleMarkers = alternativeSelections
-    .map(({ middlePoint, routeIndex }) => {
-      if (!middlePoint) return null;
-      return { position: middlePoint, routeIndex };
-    })
-    .filter(Boolean);
+  const middleMarkers = alternativeSelections.flatMap(({ middlePoints, routeIndex }) =>
+    middlePoints.map((position, middleIndex) => ({ position, routeIndex, middleIndex }))
+  );
 
   return (
     <div className={className}>
@@ -245,12 +233,12 @@ export default function ScenarioMapPreview({
             icon={endIcon}
             eventHandlers={{ dragend: handleDrag("end") }}
           />
-          {middleMarkers.map(({ position, routeIndex }) => (
+          {middleMarkers.map(({ position, routeIndex, middleIndex }) => (
             <Marker
-              key={`middle-${routeIndex}`}
+              key={`middle-${routeIndex}-${middleIndex}`}
               position={position}
               draggable
-              eventHandlers={{ dragend: handleDrag("middle", routeIndex) }}
+              eventHandlers={{ dragend: handleDrag("middle", routeIndex, middleIndex) }}
             />
           ))}
           {previewRoutes.map((route, index) => (

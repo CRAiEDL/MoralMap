@@ -27,8 +27,12 @@ const Routing = ({
     async function loadRoutes() {
       const tasks = [fetchRoute([from, to], controller.signal)];
       alternatives.forEach((alt) => {
-        if (alt.middle) {
-          tasks.push(fetchRoute([from, alt.middle, to], controller.signal));
+        const middlePoints = Array.isArray(alt.middlePoints)
+          ? alt.middlePoints.filter(Boolean)
+          : [];
+
+        if (middlePoints.length > 0) {
+          tasks.push(fetchRoute([from, ...middlePoints, to], controller.signal));
         }
       });
 
