@@ -15,6 +15,11 @@ import { useRouter } from "next/navigation";
 import { buildScenarios } from "./utils/buildScenarios";
 import { withBasePath } from "./utils/basePath";
 
+const isValidCoord = (point) =>
+  Array.isArray(point) &&
+  point.length === 2 &&
+  point.every((value) => typeof value === "number" && Number.isFinite(value));
+
 const MapRoute = () => {
   const [routeConfig, setRouteConfig] = useState(null);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -61,6 +66,9 @@ const MapRoute = () => {
           builtScenarios.map((sc) => {
             const defaultTime = sc.default_route_time;
             const alternatives = (sc.choice_list || []).map((c) => {
+              const middlePoints = Array.isArray(c.middle_point)
+                ? c.middle_point.filter(isValidCoord)
+                : [];
               const rawTts = c?.tts;
               const isPercentage = Boolean(c?.tts_is_percentage);
               const ttsValue =
@@ -87,7 +95,7 @@ const MapRoute = () => {
                   ? c.description[0] ?? ""
                   : "";
               return {
-                middle: c.middle_point,
+                middlePoints,
                 tts: ttsMinutes,
                 ttsIsPercentage: isPercentage,
                 totalTimeMinutes:
@@ -195,7 +203,9 @@ const MapRoute = () => {
     if (!currentScenario) return null;
     const pts = [currentScenario.start, currentScenario.end];
     currentScenario.alternatives.forEach((alt) => {
-      if (alt.middle) pts.push(alt.middle);
+      if (Array.isArray(alt.middlePoints)) {
+        pts.push(...alt.middlePoints);
+      }
     });
     return L.latLngBounds(pts);
   }, [currentScenario]);
