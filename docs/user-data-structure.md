@@ -25,7 +25,7 @@ Each element of `scenarios` is an object with the following shape:
 | `details` | `object` | Snapshot of the scenario content that was rendered for the participant (start/end points, default travel time, alternatives, etc.). |
 | `choice` | `object` | Metadata describing the participant's selection for this scenario. |
 
-The `details` object contains the same fields that were delivered to the client (scenario name, `start`, `end`, `defaultTime`, `alternatives`, etc.). Undefined values are omitted.
+The `details` object contains the same fields that were delivered to the client (scenario name, `start`, `end`, `defaultTime`, `defaultRouteTitle`, `defaultRouteDescription`, `alternatives`, etc.). Undefined values are omitted.
 
 The `choice` object includes:
 
@@ -54,6 +54,8 @@ The `choice` object includes:
       "presentedAt": "2024-05-20T14:04:02.113Z",
       "details": {
         "scenarioName": "Morning Commute",
+        "defaultRouteTitle": "Time Efficient Route",
+        "defaultRouteDescription": "The default route prioritizes safety and takes about 25 minutes.",
         "start": [40.712776, -74.005974],
         "end": [40.758896, -73.98513],
         "defaultTime": 25,
@@ -99,6 +101,8 @@ The `choice` object includes:
       "presentedAt": "2024-05-20T14:07:14.508Z",
       "details": {
         "scenarioName": "School Drop-off",
+        "defaultRouteTitle": "Time Efficient Route",
+        "defaultRouteDescription": "The default route prioritizes safety and takes about 18 minutes.",
         "start": [40.678178, -73.944158],
         "end": [40.650002, -73.949997],
         "defaultTime": 18,

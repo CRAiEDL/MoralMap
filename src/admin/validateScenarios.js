@@ -63,6 +63,21 @@ export function validateScenarioConfig(config) {
       errors.push(prefix + "default_route_time must contain positive integers");
     }
 
+    const defaultRouteTitles = Array.isArray(sc?.default_route_title) ? sc.default_route_title : [];
+    if (defaultRouteTitles.length === 0 || defaultRouteTitles.some((s) => !validString(s))) {
+      errors.push(prefix + "default_route_title must be a non-empty array of strings");
+    }
+
+    const defaultRouteDescriptions = Array.isArray(sc?.default_route_description)
+      ? sc.default_route_description
+      : [];
+    if (
+      defaultRouteDescriptions.length === 0 ||
+      defaultRouteDescriptions.some((s) => !validString(s))
+    ) {
+      errors.push(prefix + "default_route_description must be a non-empty array of strings");
+    }
+
     if (!validString(sc?.scenario_name)) {
       errors.push(prefix + "scenario_name must be a non-empty string");
     }

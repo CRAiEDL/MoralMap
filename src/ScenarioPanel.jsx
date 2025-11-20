@@ -81,6 +81,8 @@ const ScenarioPanel = ({
   totalScenarios,
   defaultTime,
   scenarioText,
+  defaultRouteTitle,
+  defaultRouteDescription,
   activeLabel,
   activeDescription,
   activeTime,
@@ -89,12 +91,29 @@ const ScenarioPanel = ({
   onSelectRoute,
   onSubmit,
 }) => {
+  const normalizedDefaultRouteTitle =
+    typeof defaultRouteTitle === "string" && defaultRouteTitle.trim().length > 0
+      ? defaultRouteTitle
+      : "Time Efficient Route";
+  const normalizedDefaultRouteDescription =
+    typeof defaultRouteDescription === "string" && defaultRouteDescription.trim().length > 0
+      ? defaultRouteDescription
+      : typeof defaultTime === "number"
+      ? `Approximately ${Math.round(defaultTime)} minutes`
+      : "";
+
+  const fallbackDescriptionParts = [
+    typeof defaultTime === "number"
+      ? `${normalizedDefaultRouteTitle} takes about ${Math.round(defaultTime)} minutes.`
+      : `${normalizedDefaultRouteTitle} is available as the default route.`,
+    normalizedDefaultRouteDescription,
+    "Use the toggle below to activate the default route if you prefer safety over speed.",
+  ].filter(Boolean);
+
   const scenarioDescription =
     typeof scenarioText === "string" && scenarioText.trim().length > 0
       ? scenarioText
-      : "The time-efficient route takes 25 minutes.\n\n" +
-        "The Default route prioritizes safety and takes about 25 minutes.\n\n" +
-        "Use the toggle below to activate the default route if you prefer safety over speed.";
+      : fallbackDescriptionParts.join("\n\n");
 
   const bottomPanelRef = useRef(null);
 
@@ -108,9 +127,8 @@ const ScenarioPanel = ({
     {
       key: "default-route",
       index: 0,
-      label: "Time Efficient Route",
-      description:
-        typeof defaultTime === "number" ? `Approximately ${Math.round(defaultTime)} minutes` : undefined,
+      label: normalizedDefaultRouteTitle,
+      description: normalizedDefaultRouteDescription,
     },
     ...alternatives.map((alt, idx) => ({
       key: `${alt.label}-${idx}`,
