@@ -454,13 +454,6 @@ function AlternativeRouteEditor({
           </button>
         )}
       </div>
-      <CoordListInput
-        label="Middle points"
-        values={route.middle_point}
-        onChange={(val) => onChange({ middle_point: val })}
-        selectedIndex={selection?.middle_point ?? null}
-        onSelect={(idx) => onSelect?.("middle_point", idx)}
-      />
       <NumberListInput
         label="TTS"
         values={route.tts}
@@ -622,8 +615,13 @@ function ScenarioForm({
         <label className="text-sm">Randomly preselect route</label>
       </div>
       <div>
-        <div className="flex justify-between items-center mb-2">
-          <h4 className="text-sm font-semibold">Alternative routes</h4>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm font-semibold">Alternative routes</h4>
+            <p className="text-xs text-gray-500">
+              Add or edit middle points directly on the map preview.
+            </p>
+          </div>
           <button
             onClick={() => {
               const start = Array.isArray(scenario.start?.[0]) ? scenario.start[0] : [0, 0];
