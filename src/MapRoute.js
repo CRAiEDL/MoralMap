@@ -96,7 +96,7 @@ const buildClientScenarios = (config) => {
       const ttsMinutes =
         typeof defaultTime === "number"
           ? isPercentage
-            ? (defaultTime * ttsValue) / 100
+            ? Math.ceil((defaultTime * ttsValue) / 100)
             : ttsValue
           : ttsValue;
       const labelCandidate = c?.value_name;
