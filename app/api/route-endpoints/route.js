@@ -39,6 +39,12 @@ export async function GET() {
         typeof textsConfig?.ageConfirmationText === 'string'
           ? textsConfig.ageConfirmationText
           : '',
+      defaultRouteTitle:
+        typeof textsConfig?.defaultRouteTitle === 'string' ? textsConfig.defaultRouteTitle : '',
+      defaultRouteDescription:
+        typeof textsConfig?.defaultRouteDescription === 'string'
+          ? textsConfig.defaultRouteDescription
+          : '',
       scenarioText: typeof textsConfig?.scenarioText === 'string' ? textsConfig.scenarioText : '',
       instructions: Array.isArray(instructionsConfig?.steps) ? instructionsConfig.steps : [],
       survey: Array.isArray(surveyConfig?.survey) ? surveyConfig.survey : [],
@@ -130,6 +136,15 @@ export async function POST(req) {
     if ('ageConfirmationText' in body && typeof body.ageConfirmationText !== 'string') {
       return NextResponse.json({ error: 'ageConfirmationText must be a string' }, { status: 400 });
     }
+    if ('defaultRouteTitle' in body && typeof body.defaultRouteTitle !== 'string') {
+      return NextResponse.json({ error: 'defaultRouteTitle must be a string' }, { status: 400 });
+    }
+    if (
+      'defaultRouteDescription' in body &&
+      typeof body.defaultRouteDescription !== 'string'
+    ) {
+      return NextResponse.json({ error: 'defaultRouteDescription must be a string' }, { status: 400 });
+    }
 
     const existingTexts = clone(fullConfig?.textsConfig || {});
     const nextTexts = existingTexts && typeof existingTexts === 'object' ? existingTexts : {};
@@ -142,6 +157,12 @@ export async function POST(req) {
     }
     if ('ageConfirmationText' in body) {
       nextTexts.ageConfirmationText = body.ageConfirmationText;
+    }
+    if ('defaultRouteTitle' in body) {
+      nextTexts.defaultRouteTitle = body.defaultRouteTitle;
+    }
+    if ('defaultRouteDescription' in body) {
+      nextTexts.defaultRouteDescription = body.defaultRouteDescription;
     }
 
     updates.push({
