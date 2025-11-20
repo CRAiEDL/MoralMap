@@ -59,7 +59,13 @@ const MapRoute = () => {
           : buildScenarios({ scenarios: data.scenarios, settings: data.settings });
         setScenarios(
           builtScenarios.map((sc) => {
-            const defaultTime = sc.default_route_time;
+            const rawDefaultTime = sc.default_route_time;
+            const defaultTime = Array.isArray(rawDefaultTime)
+              ? rawDefaultTime[0] ?? 0
+              : rawDefaultTime ?? 0;
+            const safeDefaultTime =
+              typeof defaultTime === "number" && !Number.isNaN(defaultTime) ? defaultTime : 0;
+
             const alternatives = (sc.choice_list || []).map((c) => {
               const rawTts = c?.tts;
               const tts =
@@ -68,21 +74,30 @@ const MapRoute = () => {
                   : Array.isArray(rawTts)
                   ? rawTts[0] ?? 0
                   : 0;
+              const totalTimeMinutes = safeDefaultTime + tts;
+              const formattedTime =
+                Number.isFinite(totalTimeMinutes) && !Number.isNaN(totalTimeMinutes)
+                  ? Math.round(totalTimeMinutes)
+                  : null;
               const labelCandidate = c?.value_name;
               const label =
                 typeof labelCandidate === "string" && labelCandidate.trim() !== ""
                   ? labelCandidate
                   : sc.scenario_name;
-              const description =
+              const descriptionTemplate =
                 typeof c?.description === "string"
                   ? c.description
                   : Array.isArray(c?.description)
                   ? c.description[0] ?? ""
                   : "";
+              const description =
+                formattedTime === null
+                  ? descriptionTemplate
+                  : descriptionTemplate.replaceAll("{time}", formattedTime.toString());
               return {
                 middle: c.middle_point,
                 tts,
-                totalTimeMinutes: defaultTime + tts,
+                totalTimeMinutes,
                 preselected: Boolean(c.preselected),
                 label,
                 description,
@@ -92,7 +107,7 @@ const MapRoute = () => {
               scenarioName: sc.scenario_name,
               start: sc.start,
               end: sc.end,
-              defaultTime,
+              defaultTime: safeDefaultTime,
               alternatives,
             };
           })
