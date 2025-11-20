@@ -84,6 +84,8 @@ const ScenarioPanel = ({
   activeLabel,
   activeDescription,
   activeTime,
+  defaultRouteTitle,
+  defaultRouteDescription,
   alternatives,
   selectedRouteIndex,
   onSelectRoute,
@@ -104,13 +106,23 @@ const ScenarioPanel = ({
     }
   }, [scenarioNumber]);
 
+  const fallbackDefaultLabel =
+    typeof defaultRouteTitle === "string" && defaultRouteTitle.trim() !== ""
+      ? defaultRouteTitle
+      : "Time Efficient Route";
+  const fallbackDefaultDescription =
+    typeof defaultRouteDescription === "string" && defaultRouteDescription.trim() !== ""
+      ? defaultRouteDescription
+      : typeof defaultTime === "number"
+      ? `Approximately ${Math.round(defaultTime)} minutes`
+      : undefined;
+
   const routeOptions = [
     {
       key: "default-route",
       index: 0,
-      label: "Time Efficient Route",
-      description:
-        typeof defaultTime === "number" ? `Approximately ${Math.round(defaultTime)} minutes` : undefined,
+      label: fallbackDefaultLabel,
+      description: fallbackDefaultDescription,
     },
     ...alternatives.map((alt, idx) => ({
       key: `${alt.label}-${idx}`,

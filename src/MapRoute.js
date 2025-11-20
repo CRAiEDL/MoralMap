@@ -154,7 +154,14 @@ const MapRoute = () => {
     }
   };
 
-  const { consentText, scenarioText, instructions, ageConfirmationText } = routeConfig || {};
+  const {
+    consentText,
+    scenarioText,
+    instructions,
+    ageConfirmationText,
+    defaultRouteTitle,
+    defaultRouteDescription,
+  } = routeConfig || {};
   const currentScenario = scenarios[scenarioIndex];
   const defaultTime = currentScenario?.defaultTime;
   const currentAlternative =
@@ -186,12 +193,25 @@ const MapRoute = () => {
     }
   }, [currentScenario, scenarioIndex]);
 
+  const resolvedDefaultRouteTitle =
+    typeof defaultRouteTitle === "string" && defaultRouteTitle.trim() !== ""
+      ? defaultRouteTitle
+      : "Time Efficient Route";
+  const resolvedDefaultRouteDescription =
+    typeof defaultRouteDescription === "string" && defaultRouteDescription.trim() !== ""
+      ? defaultRouteDescription
+      : typeof defaultTime === "number"
+      ? `Approximately ${Math.round(defaultTime)} minutes`
+      : "";
+
   const panelLabel =
     selectedRouteIndex === 0
-      ? "Time Efficient Route"
+      ? resolvedDefaultRouteTitle
       : currentAlternative?.label || currentScenario?.scenarioName || "Alternative";
   const panelDescription =
-    selectedRouteIndex === 0 ? "" : currentAlternative?.description || "";
+    selectedRouteIndex === 0
+      ? resolvedDefaultRouteDescription
+      : currentAlternative?.description || "";
   const panelTime =
     selectedRouteIndex === 0
       ? defaultTime
@@ -449,6 +469,8 @@ const MapRoute = () => {
           activeLabel={panelLabel}
           activeDescription={panelDescription}
           activeTime={panelTime}
+          defaultRouteTitle={resolvedDefaultRouteTitle}
+          defaultRouteDescription={resolvedDefaultRouteDescription}
           alternatives={currentScenario.alternatives}
           selectedRouteIndex={selectedRouteIndex}
           onSelectRoute={handleSelectRoute}

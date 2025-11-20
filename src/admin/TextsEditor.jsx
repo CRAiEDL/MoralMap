@@ -8,6 +8,8 @@ export default function TextsEditor() {
   const [consentText, setConsentText] = useState("");
   const [scenarioText, setScenarioText] = useState("");
   const [ageConfirmationText, setAgeConfirmationText] = useState("");
+  const [defaultRouteTitle, setDefaultRouteTitle] = useState("");
+  const [defaultRouteDescription, setDefaultRouteDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -22,6 +24,12 @@ export default function TextsEditor() {
       .then((data) => {
         setAgeConfirmationText(
           typeof data.ageConfirmationText === "string" ? data.ageConfirmationText : ""
+        );
+        setDefaultRouteTitle(
+          typeof data.defaultRouteTitle === "string" ? data.defaultRouteTitle : ""
+        );
+        setDefaultRouteDescription(
+          typeof data.defaultRouteDescription === "string" ? data.defaultRouteDescription : ""
         );
         setConsentText(data.consentText || "");
         setScenarioText(typeof data.scenarioText === "string" ? data.scenarioText : "");
@@ -39,7 +47,13 @@ export default function TextsEditor() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ consentText, scenarioText, ageConfirmationText }),
+        body: JSON.stringify({
+          consentText,
+          scenarioText,
+          ageConfirmationText,
+          defaultRouteTitle,
+          defaultRouteDescription,
+        }),
       });
       if (!res.ok) throw new Error(`Failed to save (${res.status})`);
     } catch (e) {
@@ -56,6 +70,12 @@ export default function TextsEditor() {
       .then((data) => {
         setAgeConfirmationText(
           typeof data.ageConfirmationText === "string" ? data.ageConfirmationText : ""
+        );
+        setDefaultRouteTitle(
+          typeof data.defaultRouteTitle === "string" ? data.defaultRouteTitle : ""
+        );
+        setDefaultRouteDescription(
+          typeof data.defaultRouteDescription === "string" ? data.defaultRouteDescription : ""
         );
         setConsentText(data.consentText || "");
         setScenarioText(typeof data.scenarioText === "string" ? data.scenarioText : "");
@@ -91,6 +111,34 @@ export default function TextsEditor() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Default route title</label>
+        <p className="text-xs text-gray-500">
+          Displayed in the route toggle and summary when the default route is selected.
+        </p>
+        <input
+          type="text"
+          value={defaultRouteTitle}
+          onChange={(e) => setDefaultRouteTitle(e.target.value)}
+          className="w-full border rounded px-3 py-2 text-sm"
+          placeholder="Time Efficient Route"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Default route description</label>
+        <p className="text-xs text-gray-500">
+          Optional helper text shown beneath the default route. If left blank, the app will
+          show the estimated travel time instead.
+        </p>
+        <textarea
+          value={defaultRouteDescription}
+          onChange={(e) => setDefaultRouteDescription(e.target.value)}
+          className="w-full border rounded px-3 py-2 text-sm h-24"
+          placeholder="Approximately 25 minutes"
+        />
       </div>
 
       <div className="space-y-2">
