@@ -15,10 +15,127 @@ import { useRouter } from "next/navigation";
 import { buildScenarios } from "./utils/buildScenarios";
 import { withBasePath } from "./utils/basePath";
 
+const ROUTE_CONFIG_CACHE_KEY = "route-config-cache-v1";
+const ROUTE_CONFIG_CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
+
 const isValidCoord = (point) =>
   Array.isArray(point) &&
   point.length === 2 &&
   point.every((value) => typeof value === "number" && Number.isFinite(value));
+
+const canUseSessionStorage = () =>
+  typeof window !== "undefined" && typeof sessionStorage !== "undefined";
+
+const loadCachedRouteConfig = () => {
+  if (!canUseSessionStorage()) return null;
+  try {
+    const raw = sessionStorage.getItem(ROUTE_CONFIG_CACHE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed?.payload || typeof parsed.savedAt !== "number") return null;
+    if (Date.now() - parsed.savedAt > ROUTE_CONFIG_CACHE_TTL) return null;
+
+    return parsed.payload;
+  } catch {
+    return null;
+  }
+};
+
+const cacheRouteConfig = (payload) => {
+  if (!canUseSessionStorage()) return;
+  try {
+    sessionStorage.setItem(
+      ROUTE_CONFIG_CACHE_KEY,
+      JSON.stringify({ payload, savedAt: Date.now() })
+    );
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+const buildClientScenarios = (config) => {
+  const baseScenarios = Array.isArray(config?.publicScenarios)
+    ? config.publicScenarios
+    : Array.isArray(config?.scenarios)
+    ? config.scenarios
+    : buildScenarios({ scenarios: config?.scenarios, settings: config?.settings });
+
+  return (Array.isArray(baseScenarios) ? baseScenarios : []).map((sc) => {
+    const defaultTime = sc.default_route_time;
+    const defaultRouteTitleCandidate = sc?.default_route_title;
+    const defaultRouteTitle =
+      typeof defaultRouteTitleCandidate === "string" && defaultRouteTitleCandidate.trim() !== ""
+        ? defaultRouteTitleCandidate
+        : "Time Efficient Route";
+    const defaultRouteDescriptionCandidate = Array.isArray(sc?.default_route_description)
+      ? sc.default_route_description[0]
+      : sc?.default_route_description;
+    const defaultRouteDescription =
+      typeof defaultRouteDescriptionCandidate === "string"
+        ? defaultRouteDescriptionCandidate.replaceAll(
+            "{time}",
+            `${Math.round(typeof defaultTime === "number" ? defaultTime : 0)}`
+          )
+        : "";
+    const defaultRouteDescriptionWithFallback =
+      defaultRouteDescription ||
+      (typeof defaultTime === "number" ? `Approximately ${Math.round(defaultTime)} minutes` : "");
+    const alternatives = (sc.choice_list || []).map((c) => {
+      const middlePoints = Array.isArray(c.middle_point)
+        ? c.middle_point.filter(isValidCoord)
+        : [];
+      const rawTts = c?.tts;
+      const isPercentage = Boolean(c?.tts_is_percentage);
+      const ttsValue =
+        typeof rawTts === "number"
+          ? rawTts
+          : Array.isArray(rawTts)
+          ? rawTts[0] ?? 0
+          : 0;
+      const ttsMinutes =
+        typeof defaultTime === "number"
+          ? isPercentage
+            ? (defaultTime * ttsValue) / 100
+            : ttsValue
+          : ttsValue;
+      const labelCandidate = c?.value_name;
+      const label =
+        typeof labelCandidate === "string" && labelCandidate.trim() !== ""
+          ? labelCandidate
+          : sc.scenario_name;
+      const totalTimeMinutes = typeof defaultTime === "number" ? defaultTime + ttsMinutes : ttsMinutes;
+      const rawDescription =
+        typeof c?.description === "string"
+          ? c.description
+          : Array.isArray(c?.description)
+          ? c.description[0] ?? ""
+          : "";
+      const resolvedDescription =
+        typeof rawDescription === "string"
+          ? rawDescription.replaceAll("{time}", `${Math.round(totalTimeMinutes)}`)
+          : "";
+      return {
+        middlePoints,
+        tts: ttsMinutes,
+        ttsIsPercentage: isPercentage,
+        totalTimeMinutes,
+        preselected: Boolean(c.preselected),
+        label,
+        description: resolvedDescription,
+      };
+    });
+    return {
+      scenarioName: sc.scenario_name,
+      start: sc.start,
+      end: sc.end,
+      defaultTime,
+      defaultRouteTitle,
+      defaultRouteDescription: defaultRouteDescriptionWithFallback,
+      alternatives,
+    };
+  });
+};
 
 const MapRoute = () => {
   const [routeConfig, setRouteConfig] = useState(null);
@@ -55,98 +172,39 @@ const MapRoute = () => {
   }, []);
 
   useEffect(() => {
-    fetch(withBasePath("/api/route-endpoints"))
-      .then((res) => res.json())
-      .then((data) => {
+    let isCancelled = false;
+
+    const cachedConfig = loadCachedRouteConfig();
+    if (cachedConfig) {
+      setRouteConfig(cachedConfig);
+      setScenarios(buildClientScenarios(cachedConfig));
+    }
+
+    const fetchRouteConfig = async () => {
+      try {
+        const res = await fetch(withBasePath("/api/route-endpoints"));
+        if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+
+        const data = await res.json();
+        if (isCancelled) return;
+
         setRouteConfig(data);
-        const builtScenarios = Array.isArray(data.scenarios)
-          ? data.scenarios
-          : buildScenarios({ scenarios: data.scenarios, settings: data.settings });
-        setScenarios(
-          builtScenarios.map((sc) => {
-            const defaultTime = sc.default_route_time;
-            const defaultRouteTitleCandidate = sc?.default_route_title;
-            const defaultRouteTitle =
-              typeof defaultRouteTitleCandidate === "string" &&
-              defaultRouteTitleCandidate.trim() !== ""
-                ? defaultRouteTitleCandidate
-                : "Time Efficient Route";
-            const defaultRouteDescriptionCandidate = Array.isArray(sc?.default_route_description)
-              ? sc.default_route_description[0]
-              : sc?.default_route_description;
-            const defaultRouteDescription =
-              typeof defaultRouteDescriptionCandidate === "string"
-                ? defaultRouteDescriptionCandidate.replaceAll(
-                    "{time}",
-                    `${Math.round(typeof defaultTime === "number" ? defaultTime : 0)}`
-                  )
-                : "";
-            const defaultRouteDescriptionWithFallback =
-              defaultRouteDescription ||
-              (typeof defaultTime === "number"
-                ? `Approximately ${Math.round(defaultTime)} minutes`
-                : "");
-            const alternatives = (sc.choice_list || []).map((c) => {
-              const middlePoints = Array.isArray(c.middle_point)
-                ? c.middle_point.filter(isValidCoord)
-                : [];
-              const rawTts = c?.tts;
-              const isPercentage = Boolean(c?.tts_is_percentage);
-              const ttsValue =
-                typeof rawTts === "number"
-                  ? rawTts
-                  : Array.isArray(rawTts)
-                  ? rawTts[0] ?? 0
-                  : 0;
-              const ttsMinutes =
-                typeof defaultTime === "number"
-                  ? isPercentage
-                    ? (defaultTime * ttsValue) / 100
-                    : ttsValue
-                  : ttsValue;
-              const labelCandidate = c?.value_name;
-              const label =
-                typeof labelCandidate === "string" && labelCandidate.trim() !== ""
-                  ? labelCandidate
-                  : sc.scenario_name;
-              const totalTimeMinutes =
-                typeof defaultTime === "number" ? defaultTime + ttsMinutes : ttsMinutes;
-              const rawDescription =
-                typeof c?.description === "string"
-                  ? c.description
-                  : Array.isArray(c?.description)
-                  ? c.description[0] ?? ""
-                  : "";
-              const resolvedDescription =
-                typeof rawDescription === "string"
-                  ? rawDescription.replaceAll("{time}", `${Math.round(totalTimeMinutes)}`)
-                  : "";
-              return {
-                middlePoints,
-                tts: ttsMinutes,
-                ttsIsPercentage: isPercentage,
-                totalTimeMinutes,
-                preselected: Boolean(c.preselected),
-                label,
-                description: resolvedDescription,
-              };
-            });
-            return {
-              scenarioName: sc.scenario_name,
-              start: sc.start,
-              end: sc.end,
-              defaultTime,
-              defaultRouteTitle,
-              defaultRouteDescription: defaultRouteDescriptionWithFallback,
-              alternatives,
-            };
-          })
-        );
-      })
-      .catch((err) => {
+        setScenarios(buildClientScenarios(data));
+        cacheRouteConfig(data);
+        setError(null);
+      } catch (err) {
         console.error("Failed to load route config:", err);
-        setError("Failed to load route configuration. Please try again later.");
-      });
+        if (!cachedConfig) {
+          setError("Failed to load route configuration. Please try again later.");
+        }
+      }
+    };
+
+    fetchRouteConfig();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const handleChoice = async () => {
