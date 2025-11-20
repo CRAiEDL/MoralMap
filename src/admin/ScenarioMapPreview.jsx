@@ -34,10 +34,11 @@ const clampIndex = (idx, length) => {
 const DEFAULT_ROUTE_COLOR = "#1452EE";
 const ALTERNATIVE_ROUTE_COLORS = ["#4B78F2", "#7897F6", "#A5B6FA", "#CFD9FD"];
 
-const makePolyline = (points, color, weight) => ({
+const makePolyline = (points, color, weight, routeIndex = null) => ({
   points: points.filter(isValidCoord),
   color,
   weight,
+  routeIndex,
 });
 
 export default function ScenarioMapPreview({
@@ -88,10 +89,11 @@ export default function ScenarioMapPreview({
       return;
     }
 
-    const buildFallbackRoute = (points, color, weight) => ({
+    const buildFallbackRoute = (points, color, weight, routeIndex = null) => ({
       points: points.filter(isValidCoord),
       color,
       weight,
+      routeIndex,
     });
 
     const loadRoutes = async () => {
@@ -103,7 +105,8 @@ export default function ScenarioMapPreview({
           return buildFallbackRoute(
             points,
             ALTERNATIVE_ROUTE_COLORS[index % ALTERNATIVE_ROUTE_COLORS.length],
-            4
+            4,
+            selection.routeIndex
           );
         }),
       ];
@@ -120,7 +123,7 @@ export default function ScenarioMapPreview({
           if (!route) return null;
           const fetched = results[idx];
           const points = Array.isArray(fetched) && fetched.length >= 2 ? fetched : route.points;
-          return makePolyline(points, route.color, route.weight);
+          return makePolyline(points, route.color, route.weight, route.routeIndex);
         })
         .filter(Boolean);
 
@@ -201,9 +204,49 @@ export default function ScenarioMapPreview({
     middlePoints.map((position, middleIndex) => ({ position, routeIndex, middleIndex }))
   );
 
+  const handleAddMiddle = (routeIndex) => (event) => {
+    if (typeof routeIndex !== "number") return;
+    const { lat, lng } = event.latlng || {};
+    if (typeof lat !== "number" || typeof lng !== "number") return;
+
+    const choiceList = Array.isArray(scenario.choice_list) ? scenario.choice_list.slice() : [];
+    const route = choiceList[routeIndex];
+    if (!route) return;
+
+    const middlePoints = Array.isArray(route.middle_point) ? route.middle_point.slice() : [];
+    choiceList[routeIndex] = {
+      ...route,
+      middle_point: [...middlePoints, [lat, lng]],
+    };
+
+    onChange({ choice_list: choiceList });
+  };
+
+  const handleMiddleContextMenu = (routeIndex, middleIndex) => (event) => {
+    event.originalEvent?.preventDefault?.();
+    event.originalEvent?.stopPropagation?.();
+
+    if (typeof routeIndex !== "number") return;
+    const choiceList = Array.isArray(scenario.choice_list) ? scenario.choice_list.slice() : [];
+    const route = choiceList[routeIndex];
+    if (!route || !Array.isArray(route.middle_point)) return;
+
+    const nextMiddle = route.middle_point.filter((_, idx) => idx !== middleIndex);
+    choiceList[routeIndex] = { ...route, middle_point: nextMiddle };
+    onChange({ choice_list: choiceList });
+  };
+
   return (
     <div className={className}>
       <div className="relative h-full w-full">
+        <div className="absolute left-2 top-2 z-10 rounded bg-white/90 p-2 text-xs text-gray-700 shadow">
+          <p className="font-semibold">Middle points</p>
+          <ul className="list-disc pl-4 space-y-1">
+            <li>Left click an alternative route to add a point.</li>
+            <li>Drag a middle point marker to reposition it.</li>
+            <li>Right click a middle point marker to delete it.</li>
+          </ul>
+        </div>
         <MapContainer
           bounds={bounds ?? undefined}
           center={bounds ? undefined : activeStart}
@@ -238,7 +281,10 @@ export default function ScenarioMapPreview({
               key={`middle-${routeIndex}-${middleIndex}`}
               position={position}
               draggable
-              eventHandlers={{ dragend: handleDrag("middle", routeIndex, middleIndex) }}
+              eventHandlers={{
+                dragend: handleDrag("middle", routeIndex, middleIndex),
+                contextmenu: handleMiddleContextMenu(routeIndex, middleIndex),
+              }}
             />
           ))}
           {previewRoutes.map((route, index) => (
@@ -247,6 +293,13 @@ export default function ScenarioMapPreview({
               key={index}
               positions={route.points}
               pathOptions={{ color: route.color, weight: route.weight, opacity: 0.9 }}
+              eventHandlers={
+                typeof route.routeIndex === "number"
+                  ? {
+                      click: handleAddMiddle(route.routeIndex),
+                    }
+                  : undefined
+              }
             />
           ))}
         </MapContainer>
