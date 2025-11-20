@@ -92,7 +92,7 @@ const ScenarioPanel = ({
   const scenarioDescription =
     typeof scenarioText === "string" && scenarioText.trim().length > 0
       ? scenarioText
-      : "The time-efficient route takes approximately 25 minutes.\n\n" +
+      : "The time-efficient route takes 25 minutes.\n\n" +
         "The Default route prioritizes safety and takes about 25 minutes.\n\n" +
         "Use the toggle below to activate the default route if you prefer safety over speed.";
 
