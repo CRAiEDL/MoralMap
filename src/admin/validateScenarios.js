@@ -77,8 +77,17 @@ export function validateScenarioConfig(config) {
         errors.push(cPrefix + "middle_point must contain valid coordinates");
       }
       const tts = Array.isArray(ch?.tts) ? ch.tts : [];
-      if (tts.length === 0 || tts.some((n) => !Number.isInteger(n) || n < 0)) {
-        errors.push(cPrefix + "tts must contain non-negative integers");
+      if (
+        tts.length === 0 ||
+        tts.some((n) => typeof n !== "number" || Number.isNaN(n) || n < 0)
+      ) {
+        errors.push(cPrefix + "tts must contain non-negative numbers");
+      }
+      if (
+        typeof ch?.tts_is_percentage !== "undefined" &&
+        typeof ch.tts_is_percentage !== "boolean"
+      ) {
+        errors.push(cPrefix + "tts_is_percentage must be boolean when provided");
       }
       const valueNames = Array.isArray(ch?.value_name) ? ch.value_name : [];
       if (valueNames.length === 0 || valueNames.some((s) => !validString(s))) {
