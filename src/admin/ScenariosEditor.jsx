@@ -156,12 +156,59 @@ const ensureSelectionForScenario = (current = {}, scenario) => {
   };
 };
 
+const COORDINATE_PATTERN = /^-?\d*(\.\d*)?$/;
+
+const formatCoordinateValue = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return "";
+};
+
 function CoordListInput({ label, values = [], onChange, selectedIndex = null, onSelect }) {
   const coords = Array.isArray(values) ? values : [];
+  const [inputs, setInputs] = useState(() =>
+    coords.map(([lat, lng]) => ({ lat: formatCoordinateValue(lat), lng: formatCoordinateValue(lng) }))
+  );
+
+  useEffect(() => {
+    setInputs(coords.map(([lat, lng]) => ({ lat: formatCoordinateValue(lat), lng: formatCoordinateValue(lng) })));
+  }, [coords]);
 
   const update = (idx, lat, lng) => {
     const next = coords.map((p, i) => (i === idx ? [lat, lng] : p));
     onChange(next);
+  };
+
+  const handleChange = (idx, key) => (e) => {
+    const value = e.target.value;
+    if (!COORDINATE_PATTERN.test(value)) return;
+
+    setInputs((prev) => {
+      const next = coords.map(([lat, lng]) => ({
+        lat: formatCoordinateValue(lat),
+        lng: formatCoordinateValue(lng),
+      }));
+
+      if (next[idx]) {
+        next[idx][key] = value;
+      }
+
+      return next;
+    });
+
+    if (value === "" || value === "-" || value === "." || value === "-.") {
+      return;
+    }
+
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return;
+
+    const [lat, lng] = coords[idx] || [0, 0];
+    const nextLat = key === "lat" ? parsed : lat;
+    const nextLng = key === "lng" ? parsed : lng;
+
+    update(idx, nextLat, nextLng);
   };
 
   const add = () => {
@@ -183,17 +230,19 @@ function CoordListInput({ label, values = [], onChange, selectedIndex = null, on
           }`}
         >
           <input
-            type="number"
-            step="any"
-            value={pair[0]}
-            onChange={(e) => update(i, Number(e.target.value), pair[1])}
+            type="text"
+            inputMode="decimal"
+            pattern="-?\\d*(\\.\\d*)?"
+            value={inputs?.[i]?.lat ?? formatCoordinateValue(pair[0])}
+            onChange={handleChange(i, "lat")}
             className="w-1/2 border rounded px-2 py-1 text-sm"
           />
           <input
-            type="number"
-            step="any"
-            value={pair[1]}
-            onChange={(e) => update(i, pair[0], Number(e.target.value))}
+            type="text"
+            inputMode="decimal"
+            pattern="-?\\d*(\\.\\d*)?"
+            value={inputs?.[i]?.lng ?? formatCoordinateValue(pair[1])}
+            onChange={handleChange(i, "lng")}
             className="w-1/2 border rounded px-2 py-1 text-sm"
           />
           <button
