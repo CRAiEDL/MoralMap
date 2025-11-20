@@ -213,10 +213,15 @@ export default function ScenarioMapPreview({
     const route = choiceList[routeIndex];
     if (!route) return;
 
-    const middlePoints = Array.isArray(route.middle_point) ? route.middle_point.slice() : [];
+    const middlePoints = Array.isArray(route.middle_point)
+      ? route.middle_point.filter(isValidCoord)
+      : [];
+
+    const nextMiddlePoints = [...middlePoints, [lat, lng]];
+
     choiceList[routeIndex] = {
       ...route,
-      middle_point: [...middlePoints, [lat, lng]],
+      middle_point: nextMiddlePoints,
     };
 
     onChange({ choice_list: choiceList });
