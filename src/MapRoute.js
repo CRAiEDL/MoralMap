@@ -325,7 +325,7 @@ const MapRoute = () => {
   useEffect(() => {
     if (!mapInstance) return;
 
-    if (isMobile) {
+    if (hasUserDraggedMap || isMobile) {
       mapInstance.setMaxBounds(null);
       return;
     }
@@ -335,7 +335,7 @@ const MapRoute = () => {
     } else {
       mapInstance.setMaxBounds(null);
     }
-  }, [mapInstance, maxBounds, isMobile]);
+  }, [mapInstance, maxBounds, isMobile, hasUserDraggedMap]);
 
   const mapPaddingOptions = useMemo(() => {
     const width = viewport.width || 0;
@@ -368,7 +368,7 @@ const MapRoute = () => {
   useEffect(() => {
     if (!mapInstance || !bounds) return;
 
-    if (isMobile && hasUserDraggedMap) return;
+    if (hasUserDraggedMap) return;
 
     mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
 
@@ -392,7 +392,7 @@ const MapRoute = () => {
   ]);
 
   useEffect(() => {
-    if (!mapInstance || !isMobile) return;
+    if (!mapInstance) return;
 
     const handleFirstMove = () => {
       setHasUserDraggedMap(true);
@@ -404,10 +404,10 @@ const MapRoute = () => {
     return () => {
       mapInstance.off("movestart", handleFirstMove);
     };
-  }, [mapInstance, isMobile]);
+  }, [mapInstance]);
 
   useEffect(() => {
-    if (!mapInstance || !isMobile) return;
+    if (!mapInstance) return;
 
     const handleDragStart = () => setHasUserDraggedMap(true);
 
@@ -416,7 +416,7 @@ const MapRoute = () => {
     return () => {
       mapInstance.off("dragstart", handleDragStart);
     };
-  }, [mapInstance, isMobile]);
+  }, [mapInstance]);
 
   useEffect(() => {
     setHasUserDraggedMap(false);
