@@ -458,7 +458,7 @@ const MapRoute = () => {
         touchZoom={isMobile}
         boxZoom
         keyboard
-        zoomControl
+        zoomControl={false}
         dragging
         inertia
         whenCreated={setMapInstance}
