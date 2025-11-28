@@ -366,32 +366,6 @@ const MapRoute = () => {
   }, [isMobile, viewport.height, viewport.width]);
 
   useEffect(() => {
-    if (!mapInstance || !bounds) return;
-
-    if (isMobile && hasUserDraggedMap) return;
-
-    mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
-
-    if (isMobile) {
-      const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
-      const mapSize = mapInstance.getSize();
-      const height = mapSize?.y ?? viewport.height ?? 0;
-      const deltaY = (targetRatio - 0.5) * height;
-
-      if (deltaY !== 0) {
-        mapInstance.panBy([0, deltaY], { animate: false });
-      }
-    }
-  }, [
-    mapInstance,
-    bounds,
-    mapPaddingOptions,
-    isMobile,
-    viewport.height,
-    hasUserDraggedMap,
-  ]);
-
-  useEffect(() => {
     if (!mapInstance || !isMobile) return;
 
     const handleFirstMove = () => {
@@ -421,6 +395,32 @@ const MapRoute = () => {
   useEffect(() => {
     setHasUserDraggedMap(false);
   }, [scenarioIndex]);
+
+  useEffect(() => {
+    if (!mapInstance || !bounds) return;
+
+    if (isMobile && hasUserDraggedMap) return;
+
+    mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
+
+    if (isMobile) {
+      const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
+      const mapSize = mapInstance.getSize();
+      const height = mapSize?.y ?? viewport.height ?? 0;
+      const deltaY = (targetRatio - 0.5) * height;
+
+      if (deltaY !== 0) {
+        mapInstance.panBy([0, deltaY], { animate: false });
+      }
+    }
+  }, [
+    mapInstance,
+    bounds,
+    mapPaddingOptions,
+    isMobile,
+    viewport.height,
+    hasUserDraggedMap,
+  ]);
 
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
