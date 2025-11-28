@@ -19,9 +19,6 @@ export default function ScenarioTransition({ current, total }) {
             <span className="text-sm font-medium uppercase tracking-[0.3em] text-gray-500">of {total}</span>
           </div>
 
-          <p className="text-sm font-medium text-gray-600">
-            Re-centering map and preparing new routes
-          </p>
         </div>
       </div>
     </div>
