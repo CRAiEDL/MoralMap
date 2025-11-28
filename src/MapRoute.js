@@ -384,104 +384,45 @@ const MapRoute = () => {
     const bottomReserved = Math.round(height * 0.35);
     const topReserved = Math.round(
       Math.max(height * 0.05, bottomReserved + height * (targetVerticalCenterRatio - 0.5) * 2)
-    );
-    const sidePadding = Math.max(8, Math.round(width * 0.02));
-    const paddingTopLeft = [sidePadding, topReserved + 8];
-    const paddingBottomRight = [sidePadding, bottomReserved + 8];
-
-    return {
-      bounds: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
-      fit: { paddingTopLeft, paddingBottomRight, maxZoom: 19 },
-      targetVerticalCenterRatio,
-    };
-  }, [isMobile, viewport.height, viewport.width]);
-
-  useEffect(() => {
-    if (!mapInstance || !isMobile) return;
-
-    const handleDragStart = () => setHasUserDraggedMap(true);
-
-    mapInstance.on("dragstart", handleDragStart);
-
-    return () => {
-      mapInstance.off("dragstart", handleDragStart);
-    };
-  }, [mapInstance, isMobile]);
-
-  // Keep track of the last bounds we fitted to, to avoid loops/redundant fits
-  const lastFittedBoundsRef = useRef(null);
-
-  // Reset tracking when scenario changes
-  useEffect(() => {
-    setHasUserDraggedMap(false);
-    hasFittedRoutesRef.current = false;
-    lastFittedBoundsRef.current = null;
-  }, [scenarioIndex]);
-
-  useEffect(() => {
-    const targetBounds = routeBounds || bounds;
-
-    if (!mapInstance || !targetBounds || !currentScenario) return;
-
-    // Check if we need to fit:
-    // 1. New scenario (implicit via lastFittedBoundsRef reset)
-    // 2. Bounds have changed (e.g. routes loaded)
-    // 3. We haven't successfully fitted routes yet for this scenario
-
-    const boundsChanged = !lastFittedBoundsRef.current || !lastFittedBoundsRef.current.equals(targetBounds);
-    const shouldForceFit = boundsChanged && (targetBounds === routeBounds || !hasFittedRoutesRef.current);
-
-    if (hasUserDraggedMap && !shouldForceFit) {
-      return;
-    }
-
-    if (targetBounds === routeBounds) {
-      hasFittedRoutesRef.current = true;
-    }
-
-    // Calculate the midpoint between start and end
-    const start = L.latLng(currentScenario.start);
+  const start = L.latLng(currentScenario.start);
     const end = L.latLng(currentScenario.end);
     const centerLat = (start.lat + end.lat) / 2;
     const centerLng = (start.lng + end.lng) / 2;
 
-    // Expand targetBounds to be symmetrical around the center
-    const southWest = targetBounds.getSouthWest();
-    const northEast = targetBounds.getNorthEast();
+    // 2. Determine the content we need to show (Routes or just Start/End)
+    // Use routeBounds if available, otherwise just the start/end bounds
+    const contentBounds = routeBounds || L.latLngBounds([start, end]);
 
-    const maxLatDiff = Math.max(Math.abs(southWest.lat - centerLat), Math.abs(northEast.lat - centerLat));
-    const maxLngDiff = Math.max(Math.abs(southWest.lng - centerLng), Math.abs(northEast.lng - centerLng));
+    // 3. Calculate the maximum extent from the center to any edge of the content
+    const southWest = contentBounds.getSouthWest();
+    const northEast = contentBounds.getNorthEast();
 
+    const maxLatDiff = Math.max(
+      Math.abs(southWest.lat - centerLat),
+      Math.abs(northEast.lat - centerLat)
+    );
+    const maxLngDiff = Math.max(
+      Math.abs(southWest.lng - centerLng),
+      Math.abs(northEast.lng - centerLng)
+    );
+
+    // 4. Create a new bounding box that is:
+    //    - Centered exactly on the Midpoint
+    //    - Large enough to contain all content
+    //    - Symmetrical (extends equally in all directions from center)
     const symmetricalBounds = L.latLngBounds(
       [centerLat - maxLatDiff, centerLng - maxLngDiff],
       [centerLat + maxLatDiff, centerLng + maxLngDiff]
     );
 
-    mapInstance.invalidateSize();
-    mapInstance.fitBounds(symmetricalBounds, mapPaddingOptions.fit);
-    lastFittedBoundsRef.current = targetBounds;
+    // 5. Fit the map to these bounds
+    // Add a little padding (50px) so points aren't on the very edge
+    mapInstance.fitBounds(symmetricalBounds, {
+      padding: [50, 50],
+      animate: true,
+    });
 
-    if (isMobile) {
-      const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
-      const mapSize = mapInstance.getSize();
-      const height = mapSize?.y ?? viewport.height ?? 0;
-      const deltaY = (targetRatio - 0.5) * height;
-
-      if (deltaY !== 0) {
-        mapInstance.panBy([0, deltaY], { animate: false });
-      }
-    }
-  }, [
-    mapInstance,
-    bounds,
-    routeBounds,
-    mapPaddingOptions,
-    isMobile,
-    scenarioIndex,
-    currentScenario,
-    viewport.height,
-    hasUserDraggedMap,
-  ]);
+  }, [mapInstance, currentScenario, routeBounds]);
 
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
