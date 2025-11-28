@@ -173,7 +173,7 @@ const MapRecenter = ({ currentScenario, isMobile }) => {
 
       // Let's do this in pixel space at the target zoom
       const midpointPoint = map.project([centerLat, centerLng], targetZoom);
-      const offsetY = mapSize.y * 0.20; // 10% of screen height
+      const offsetY = mapSize.y * 0.15; // 10% of screen height
 
       // New center point in pixels
       const newCenterPoint = midpointPoint.add([0, -offsetY]); // Subtract Y to move "up" in pixels (which means looking at a point further north)
