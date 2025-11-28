@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import Routing from "./Routing";
 import RoutingLabels from "./RoutingLabels";
@@ -138,6 +138,23 @@ const buildClientScenarios = (config) => {
   });
 };
 
+const MapRecenter = ({ currentScenario }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!currentScenario) return;
+
+    const start = L.latLng(currentScenario.start);
+    const end = L.latLng(currentScenario.end);
+    const centerLat = (start.lat + end.lat) / 2;
+    const centerLng = (start.lng + end.lng) / 2;
+
+    map.panTo([centerLat, centerLng], { animate: true });
+  }, [currentScenario, map]);
+
+  return null;
+};
+
 const MapRoute = () => {
   const [routeConfig, setRouteConfig] = useState(null);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -154,7 +171,6 @@ const MapRoute = () => {
   const [hasUserDraggedMap, setHasUserDraggedMap] = useState(false);
   const [error, setError] = useState(null);
   const [sessionId] = useState(uuidv4());
-  const [mapInstance, setMapInstance] = useState(null);
 
   const [showScenarioTransition, setShowScenarioTransition] = useState(false);
   const lastFittedScenarioRef = useRef(null);
@@ -173,8 +189,6 @@ const MapRoute = () => {
 
     return () => clearTimeout(timeout);
   }, [scenarioIndex]);
-
-
 
   useEffect(() => {
     let isCancelled = false;
@@ -260,6 +274,7 @@ const MapRoute = () => {
     setRoutes([]);
     setMapPoints([]);
   }, [scenarioIndex]);
+
   const routeBounds = useMemo(() => {
     const selectedRoute = routes[selectedRouteIndex];
     const coords = selectedRoute?.coords;
@@ -273,29 +288,21 @@ const MapRoute = () => {
     }
   }, [routes, selectedRouteIndex]);
 
-  useEffect(() => {
+  const handleSelectRoute = (index) => {
     if (!currentScenario) return;
 
-    const preselectedIdx = currentScenario.alternatives.findIndex((alt) => alt.preselected);
-
-    if (preselectedIdx >= 0) {
-      const nextIndex = preselectedIdx + 1;
-      if (selectedRouteIndex !== nextIndex) {
-        setSelectedRouteIndex(nextIndex);
-      }
-      const nextLabel = currentScenario.alternatives[preselectedIdx]?.label || "alternative";
-      if (selectedLabel !== nextLabel) {
-        setSelectedLabel(nextLabel);
-      }
-    } else {
-      if (selectedRouteIndex !== 0) {
-        setSelectedRouteIndex(0);
-      }
-      if (selectedLabel !== "default") {
-        setSelectedLabel("default");
-      }
+    if (index === 0) {
+      setSelectedLabel("default");
+      setSelectedRouteIndex(0);
+      return;
     }
-  }, [currentScenario, scenarioIndex]);
+
+    const alt = currentScenario.alternatives[index - 1];
+    if (!alt) return;
+
+    setSelectedLabel(alt?.label || "alternative");
+    setSelectedRouteIndex(index);
+  };
 
   const panelLabel =
     selectedRouteIndex === 0
@@ -320,35 +327,6 @@ const MapRoute = () => {
     return L.latLngBounds(pts);
   }, [currentScenario]);
 
-  useEffect(() => {
-    if (!mapInstance || !currentScenario) return;
-
-    const start = L.latLng(currentScenario.start);
-    const end = L.latLng(currentScenario.end);
-    const centerLat = (start.lat + end.lat) / 2;
-    const centerLng = (start.lng + end.lng) / 2;
-
-    mapInstance.panTo([centerLat, centerLng], { animate: true });
-  }, [mapInstance, currentScenario]);
-
-
-
-  const handleSelectRoute = (index) => {
-    if (!currentScenario) return;
-
-    if (index === 0) {
-      setSelectedLabel("default");
-      setSelectedRouteIndex(0);
-      return;
-    }
-
-    const alt = currentScenario.alternatives[index - 1];
-    if (!alt) return;
-
-    setSelectedLabel(alt?.label || "alternative");
-    setSelectedRouteIndex(index);
-  };
-
   if (error) return <div>{error}</div>;
   if (!routeConfig || scenarios.length === 0 || !bounds)
     return <div>Loading route data...</div>;
@@ -369,8 +347,8 @@ const MapRoute = () => {
         keyboard
         dragging
         inertia
-        whenCreated={setMapInstance}
       >
+        <MapRecenter currentScenario={currentScenario} />
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
