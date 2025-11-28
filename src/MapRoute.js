@@ -262,6 +262,18 @@ const MapRoute = () => {
     currentScenario && selectedRouteIndex > 0
       ? currentScenario.alternatives[selectedRouteIndex - 1]
       : null;
+  const routeBounds = useMemo(() => {
+    const selectedRoute = routes[selectedRouteIndex];
+    const coords = selectedRoute?.coords;
+
+    if (!Array.isArray(coords) || coords.length === 0) return null;
+
+    try {
+      return L.latLngBounds(coords.map(([lat, lng]) => L.latLng(lat, lng)));
+    } catch {
+      return null;
+    }
+  }, [routes, selectedRouteIndex]);
 
   useEffect(() => {
     if (!currentScenario) return;
@@ -409,11 +421,13 @@ const MapRoute = () => {
   }, [scenarioIndex]);
 
   useEffect(() => {
-    if (!mapInstance || !bounds) return;
+    const targetBounds = routeBounds || bounds;
+
+    if (!mapInstance || !targetBounds) return;
 
     if (isMobile && hasUserDraggedMap) return;
 
-    mapInstance.fitBounds(bounds, mapPaddingOptions.fit);
+    mapInstance.fitBounds(targetBounds, mapPaddingOptions.fit);
 
     if (isMobile) {
       const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
@@ -428,6 +442,7 @@ const MapRoute = () => {
   }, [
     mapInstance,
     bounds,
+    routeBounds,
     mapPaddingOptions,
     isMobile,
     viewport.height,
