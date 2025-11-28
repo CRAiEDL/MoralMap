@@ -59,8 +59,8 @@ const buildClientScenarios = (config) => {
   const baseScenarios = Array.isArray(config?.publicScenarios)
     ? config.publicScenarios
     : Array.isArray(config?.scenarios)
-    ? config.scenarios
-    : buildScenarios({ scenarios: config?.scenarios, settings: config?.settings });
+      ? config.scenarios
+      : buildScenarios({ scenarios: config?.scenarios, settings: config?.settings });
 
   return (Array.isArray(baseScenarios) ? baseScenarios : []).map((sc) => {
     const defaultTime = sc.default_route_time;
@@ -75,9 +75,9 @@ const buildClientScenarios = (config) => {
     const defaultRouteDescription =
       typeof defaultRouteDescriptionCandidate === "string"
         ? defaultRouteDescriptionCandidate.replaceAll(
-            "{time}",
-            `${Math.round(typeof defaultTime === "number" ? defaultTime : 0)}`
-          )
+          "{time}",
+          `${Math.round(typeof defaultTime === "number" ? defaultTime : 0)}`
+        )
         : "";
     const defaultRouteDescriptionWithFallback =
       defaultRouteDescription ||
@@ -92,8 +92,8 @@ const buildClientScenarios = (config) => {
         typeof rawTts === "number"
           ? rawTts
           : Array.isArray(rawTts)
-          ? rawTts[0] ?? 0
-          : 0;
+            ? rawTts[0] ?? 0
+            : 0;
       const ttsMinutes =
         typeof defaultTime === "number"
           ? isPercentage
@@ -110,8 +110,8 @@ const buildClientScenarios = (config) => {
         typeof c?.description === "string"
           ? c.description
           : Array.isArray(c?.description)
-          ? c.description[0] ?? ""
-          : "";
+            ? c.description[0] ?? ""
+            : "";
       const resolvedDescription =
         typeof rawDescription === "string"
           ? rawDescription.replaceAll("{time}", `${Math.round(totalTimeMinutes)}`)
@@ -158,6 +158,7 @@ const MapRoute = () => {
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [showScenarioTransition, setShowScenarioTransition] = useState(false);
   const lastFittedScenarioRef = useRef(null);
+  const hasFittedRoutesRef = useRef(false);
   useEffect(() => {
     localStorage.setItem("sessionId", sessionId);
   }, [sessionId]);
@@ -398,21 +399,6 @@ const MapRoute = () => {
   useEffect(() => {
     if (!mapInstance || !isMobile) return;
 
-    const handleFirstMove = () => {
-      setHasUserDraggedMap(true);
-      mapInstance.setMaxBounds(null);
-    };
-
-    mapInstance.once("movestart", handleFirstMove);
-
-    return () => {
-      mapInstance.off("movestart", handleFirstMove);
-    };
-  }, [mapInstance, isMobile]);
-
-  useEffect(() => {
-    if (!mapInstance || !isMobile) return;
-
     const handleDragStart = () => setHasUserDraggedMap(true);
 
     mapInstance.on("dragstart", handleDragStart);
@@ -424,6 +410,7 @@ const MapRoute = () => {
 
   useEffect(() => {
     setHasUserDraggedMap(false);
+    hasFittedRoutesRef.current = false;
   }, [scenarioIndex]);
 
   useEffect(() => {
@@ -433,12 +420,20 @@ const MapRoute = () => {
 
     const scenarioChanged = lastFittedScenarioRef.current !== scenarioIndex;
 
-    if (!scenarioChanged && isMobile && hasUserDraggedMap) return;
+    if (!scenarioChanged && isMobile && hasUserDraggedMap) {
+      const isRouteFit = targetBounds === routeBounds;
+      if (!isRouteFit || hasFittedRoutesRef.current) {
+        return;
+      }
+    }
 
     mapInstance.invalidateSize();
     mapInstance.fitBounds(targetBounds, mapPaddingOptions.fit);
 
     lastFittedScenarioRef.current = scenarioIndex;
+    if (targetBounds === routeBounds) {
+      hasFittedRoutesRef.current = true;
+    }
 
     if (isMobile) {
       const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
