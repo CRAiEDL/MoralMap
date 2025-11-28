@@ -384,7 +384,18 @@ const MapRoute = () => {
     const bottomReserved = Math.round(height * 0.35);
     const topReserved = Math.round(
       Math.max(height * 0.05, bottomReserved + height * (targetVerticalCenterRatio - 0.5) * 2)
-  const start = L.latLng(currentScenario.start);
+    );
+
+    return {
+      bounds: { paddingTopLeft: [20, topReserved], paddingBottomRight: [20, bottomReserved], maxZoom: 15 },
+      fit: { padding: [20, 20], maxZoom: 15 },
+    };
+  }, [viewport.width, viewport.height, isMobile]);
+
+  useEffect(() => {
+    if (!mapInstance || !currentScenario) return;
+
+    const start = L.latLng(currentScenario.start);
     const end = L.latLng(currentScenario.end);
     const centerLat = (start.lat + end.lat) / 2;
     const centerLng = (start.lng + end.lng) / 2;
