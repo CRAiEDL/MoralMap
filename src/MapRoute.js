@@ -421,7 +421,7 @@ const MapRoute = () => {
   useEffect(() => {
     const targetBounds = routeBounds || bounds;
 
-    if (!mapInstance || !targetBounds) return;
+    if (!mapInstance || !targetBounds || !currentScenario) return;
 
     // Check if we need to fit:
     // 1. New scenario (implicit via lastFittedBoundsRef reset)
@@ -431,23 +431,36 @@ const MapRoute = () => {
     const boundsChanged = !lastFittedBoundsRef.current || !lastFittedBoundsRef.current.equals(targetBounds);
     const shouldForceFit = boundsChanged && (targetBounds === routeBounds || !hasFittedRoutesRef.current);
 
-    // If the user has dragged the map, we generally don't want to disturb them,
-    // UNLESS it's the critical moment where we finally got the route data.
     if (hasUserDraggedMap && !shouldForceFit) {
       return;
     }
 
-    // If we are about to fit to routes, mark it
     if (targetBounds === routeBounds) {
       hasFittedRoutesRef.current = true;
     }
 
-    // Perform the fit
+    // Calculate the midpoint between start and end
+    const start = L.latLng(currentScenario.start);
+    const end = L.latLng(currentScenario.end);
+    const centerLat = (start.lat + end.lat) / 2;
+    const centerLng = (start.lng + end.lng) / 2;
+
+    // Expand targetBounds to be symmetrical around the center
+    const southWest = targetBounds.getSouthWest();
+    const northEast = targetBounds.getNorthEast();
+
+    const maxLatDiff = Math.max(Math.abs(southWest.lat - centerLat), Math.abs(northEast.lat - centerLat));
+    const maxLngDiff = Math.max(Math.abs(southWest.lng - centerLng), Math.abs(northEast.lng - centerLng));
+
+    const symmetricalBounds = L.latLngBounds(
+      [centerLat - maxLatDiff, centerLng - maxLngDiff],
+      [centerLat + maxLatDiff, centerLng + maxLngDiff]
+    );
+
     mapInstance.invalidateSize();
-    mapInstance.fitBounds(targetBounds, mapPaddingOptions.fit);
+    mapInstance.fitBounds(symmetricalBounds, mapPaddingOptions.fit);
     lastFittedBoundsRef.current = targetBounds;
 
-    // Mobile adjustment
     if (isMobile) {
       const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
       const mapSize = mapInstance.getSize();
@@ -464,7 +477,8 @@ const MapRoute = () => {
     routeBounds,
     mapPaddingOptions,
     isMobile,
-    scenarioIndex, // dependency needed to trigger re-eval on switch
+    scenarioIndex,
+    currentScenario,
     viewport.height,
     hasUserDraggedMap,
   ]);
