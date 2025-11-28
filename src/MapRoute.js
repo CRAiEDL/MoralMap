@@ -155,7 +155,7 @@ const MapRoute = () => {
   const [error, setError] = useState(null);
   const [sessionId] = useState(uuidv4());
   const [mapInstance, setMapInstance] = useState(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+
   const [showScenarioTransition, setShowScenarioTransition] = useState(false);
   const lastFittedScenarioRef = useRef(null);
   const hasFittedRoutesRef = useRef(false);
@@ -174,16 +174,7 @@ const MapRoute = () => {
     return () => clearTimeout(timeout);
   }, [scenarioIndex]);
 
-  useEffect(() => {
-    const updateViewport = () => {
-      if (typeof window === "undefined") return;
-      setViewport({ width: window.innerWidth, height: window.innerHeight });
-    };
 
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -329,111 +320,7 @@ const MapRoute = () => {
     return L.latLngBounds(pts);
   }, [currentScenario]);
 
-  const maxBounds = useMemo(() => {
-    if (!bounds) return null;
-    return bounds.pad(0.25);
-  }, [bounds]);
 
-  const isMobile = useMemo(() => {
-    if (typeof window === "undefined") return false;
-
-    const fallbackWidth = window.innerWidth || 0;
-    const fallbackHeight = window.innerHeight || 0;
-    const width = viewport.width || fallbackWidth;
-    const height = viewport.height || fallbackHeight;
-    const smallestSide = Math.min(width, height || fallbackHeight);
-
-    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-    const isTouch = typeof navigator !== "undefined" ? navigator.maxTouchPoints > 0 : false;
-    const uaMatchesMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-
-    if (uaMatchesMobile) return true;
-    if (isTouch && smallestSide <= 1024) return true;
-
-    return width <= 768;
-  }, [viewport.width, viewport.height]);
-
-  useEffect(() => {
-    if (!mapInstance) return;
-
-    if (isMobile) {
-      mapInstance.setMaxBounds(null);
-      return;
-    }
-
-    if (maxBounds) {
-      mapInstance.setMaxBounds(maxBounds);
-    } else {
-      mapInstance.setMaxBounds(null);
-    }
-  }, [mapInstance, maxBounds, isMobile]);
-
-  const mapPaddingOptions = useMemo(() => {
-    const width = viewport.width || 0;
-    const height = viewport.height || 0;
-
-    if (!isMobile) {
-      const desktopPadding = 50;
-      return {
-        bounds: { padding: [desktopPadding, desktopPadding], maxZoom: 15 },
-        fit: { padding: [desktopPadding, desktopPadding], maxZoom: 15 },
-      };
-    }
-
-    const targetVerticalCenterRatio = 0.3;
-    const bottomReserved = Math.round(height * 0.35);
-    const topReserved = Math.round(
-      Math.max(height * 0.05, bottomReserved + height * (targetVerticalCenterRatio - 0.5) * 2)
-    );
-
-    return {
-      bounds: { paddingTopLeft: [20, topReserved], paddingBottomRight: [20, bottomReserved], maxZoom: 15 },
-      fit: { padding: [20, 20], maxZoom: 15 },
-    };
-  }, [viewport.width, viewport.height, isMobile]);
-
-  useEffect(() => {
-    if (!mapInstance || !currentScenario) return;
-
-    const start = L.latLng(currentScenario.start);
-    const end = L.latLng(currentScenario.end);
-    const centerLat = (start.lat + end.lat) / 2;
-    const centerLng = (start.lng + end.lng) / 2;
-
-    // 2. Determine the content we need to show (Routes or just Start/End)
-    // Use routeBounds if available, otherwise just the start/end bounds
-    const contentBounds = routeBounds || L.latLngBounds([start, end]);
-
-    // 3. Calculate the maximum extent from the center to any edge of the content
-    const southWest = contentBounds.getSouthWest();
-    const northEast = contentBounds.getNorthEast();
-
-    const maxLatDiff = Math.max(
-      Math.abs(southWest.lat - centerLat),
-      Math.abs(northEast.lat - centerLat)
-    );
-    const maxLngDiff = Math.max(
-      Math.abs(southWest.lng - centerLng),
-      Math.abs(northEast.lng - centerLng)
-    );
-
-    // 4. Create a new bounding box that is:
-    //    - Centered exactly on the Midpoint
-    //    - Large enough to contain all content
-    //    - Symmetrical (extends equally in all directions from center)
-    const symmetricalBounds = L.latLngBounds(
-      [centerLat - maxLatDiff, centerLng - maxLngDiff],
-      [centerLat + maxLatDiff, centerLng + maxLngDiff]
-    );
-
-    // 5. Fit the map to these bounds
-    // Add a little padding (50px) so points aren't on the very edge
-    mapInstance.fitBounds(symmetricalBounds, {
-      padding: [50, 50],
-      animate: true,
-    });
-
-  }, [mapInstance, currentScenario, routeBounds]);
 
   const handleSelectRoute = (index) => {
     if (!currentScenario) return;
@@ -461,17 +348,14 @@ const MapRoute = () => {
         <ProgressBar currentStep={scenarioIndex} totalSteps={scenarios.length + 1} />
       )}
       <MapContainer
-        bounds={bounds}
-        boundsOptions={mapPaddingOptions.bounds}
-        maxBounds={!isMobile && maxBounds ? maxBounds : undefined}
-        maxBoundsViscosity={1.0}
+        center={scenarios[0].start}
+        zoom={13}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom
         doubleClickZoom
-        touchZoom={isMobile}
+        touchZoom
         boxZoom
         keyboard
-        zoomControl={false}
         dragging
         inertia
         whenCreated={setMapInstance}
