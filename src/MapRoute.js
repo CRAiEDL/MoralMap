@@ -149,7 +149,19 @@ const MapRecenter = ({ currentScenario }) => {
     const centerLat = (start.lat + end.lat) / 2;
     const centerLng = (start.lng + end.lng) / 2;
 
-    map.panTo([centerLat, centerLng], { animate: true });
+    // Calculate target zoom
+    const mapSize = map.getSize();
+    const isHorizontal = mapSize.x > mapSize.y;
+    const targetDimension = isHorizontal ? mapSize.x : mapSize.y;
+    const targetPixels = targetDimension * 0.20;
+
+    const p1 = map.project(start, 0);
+    const p2 = map.project(end, 0);
+    const distanceAtZoom0 = p1.distanceTo(p2);
+
+    const targetZoom = Math.log2(targetPixels / distanceAtZoom0);
+
+    map.flyTo([centerLat, centerLng], targetZoom, { animate: true });
   }, [currentScenario, map]);
 
   return null;
