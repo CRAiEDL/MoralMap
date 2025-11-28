@@ -408,9 +408,14 @@ const MapRoute = () => {
     };
   }, [mapInstance, isMobile]);
 
+  // Keep track of the last bounds we fitted to, to avoid loops/redundant fits
+  const lastFittedBoundsRef = useRef(null);
+
+  // Reset tracking when scenario changes
   useEffect(() => {
     setHasUserDraggedMap(false);
     hasFittedRoutesRef.current = false;
+    lastFittedBoundsRef.current = null;
   }, [scenarioIndex]);
 
   useEffect(() => {
@@ -418,23 +423,31 @@ const MapRoute = () => {
 
     if (!mapInstance || !targetBounds) return;
 
-    const scenarioChanged = lastFittedScenarioRef.current !== scenarioIndex;
+    // Check if we need to fit:
+    // 1. New scenario (implicit via lastFittedBoundsRef reset)
+    // 2. Bounds have changed (e.g. routes loaded)
+    // 3. We haven't successfully fitted routes yet for this scenario
 
-    if (!scenarioChanged && isMobile && hasUserDraggedMap) {
-      const isRouteFit = targetBounds === routeBounds;
-      if (!isRouteFit || hasFittedRoutesRef.current) {
-        return;
-      }
+    const boundsChanged = !lastFittedBoundsRef.current || !lastFittedBoundsRef.current.equals(targetBounds);
+    const shouldForceFit = boundsChanged && (targetBounds === routeBounds || !hasFittedRoutesRef.current);
+
+    // If the user has dragged the map, we generally don't want to disturb them,
+    // UNLESS it's the critical moment where we finally got the route data.
+    if (hasUserDraggedMap && !shouldForceFit) {
+      return;
     }
 
-    mapInstance.invalidateSize();
-    mapInstance.fitBounds(targetBounds, mapPaddingOptions.fit);
-
-    lastFittedScenarioRef.current = scenarioIndex;
+    // If we are about to fit to routes, mark it
     if (targetBounds === routeBounds) {
       hasFittedRoutesRef.current = true;
     }
 
+    // Perform the fit
+    mapInstance.invalidateSize();
+    mapInstance.fitBounds(targetBounds, mapPaddingOptions.fit);
+    lastFittedBoundsRef.current = targetBounds;
+
+    // Mobile adjustment
     if (isMobile) {
       const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
       const mapSize = mapInstance.getSize();
@@ -451,7 +464,7 @@ const MapRoute = () => {
     routeBounds,
     mapPaddingOptions,
     isMobile,
-    scenarioIndex,
+    scenarioIndex, // dependency needed to trigger re-eval on switch
     viewport.height,
     hasUserDraggedMap,
   ]);
