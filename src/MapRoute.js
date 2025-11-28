@@ -262,6 +262,11 @@ const MapRoute = () => {
     currentScenario && selectedRouteIndex > 0
       ? currentScenario.alternatives[selectedRouteIndex - 1]
       : null;
+
+  useEffect(() => {
+    setRoutes([]);
+    setMapPoints([]);
+  }, [scenarioIndex]);
   const routeBounds = useMemo(() => {
     const selectedRoute = routes[selectedRouteIndex];
     const coords = selectedRoute?.coords;
@@ -495,6 +500,7 @@ const MapRoute = () => {
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
         <Routing
+          key={`scenario-${scenarioIndex}`}
           from={currentScenario.start}
           to={currentScenario.end}
           alternatives={currentScenario.alternatives}
