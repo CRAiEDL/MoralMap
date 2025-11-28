@@ -693,8 +693,10 @@ export default function ScenariosEditor() {
     }
   }, [config, rawScenarios, scenarios, setConfig]);
 
-  const scenarioKeys = Object.keys(scenarios);
+  const scenarioKeys = useMemo(() => Object.keys(scenarios), [scenarios]);
   const [selectedKey, setSelectedKey] = useState(scenarioKeys[0] || "");
+  const [draggedKey, setDraggedKey] = useState(null);
+  const [dragOverKey, setDragOverKey] = useState(null);
 
   useEffect(() => {
     if (!selectedKey && scenarioKeys.length > 0) {
@@ -707,6 +709,24 @@ export default function ScenariosEditor() {
     setConfig((prev) => ({ ...prev, scenarios: normalized }));
     setDirty(true);
   };
+
+  const reorderScenarios = useCallback(
+    (sourceKey, targetKey) => {
+      if (!sourceKey || !targetKey || sourceKey === targetKey) return;
+
+      const fromIndex = scenarioKeys.indexOf(sourceKey);
+      const toIndex = scenarioKeys.indexOf(targetKey);
+      if (fromIndex === -1 || toIndex === -1) return;
+
+      const reorderedKeys = scenarioKeys.slice();
+      const [moved] = reorderedKeys.splice(fromIndex, 1);
+      reorderedKeys.splice(toIndex, 0, moved);
+
+      const reordered = Object.fromEntries(reorderedKeys.map((key) => [key, scenarios[key]]));
+      patchScenarios(reordered);
+    },
+    [scenarioKeys, scenarios, patchScenarios]
+  );
 
   const addScenario = () => {
     const prev = selectedKey ? scenarios[selectedKey] : null;
@@ -835,7 +855,29 @@ export default function ScenariosEditor() {
           </div>
           <div className="max-h-40 overflow-y-auto mb-4">
             {scenarioKeys.map((key) => (
-              <div key={key} className="flex items-center mb-1">
+              <div
+                key={key}
+                className={`flex items-center mb-1 rounded border border-transparent ${
+                  dragOverKey === key && draggedKey !== key ? "border-indigo-300 bg-indigo-50" : ""
+                }`}
+                draggable
+                onDragStart={() => setDraggedKey(key)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (draggedKey !== key) setDragOverKey(key);
+                }}
+                onDragLeave={() => setDragOverKey(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  reorderScenarios(draggedKey, key);
+                  setDraggedKey(null);
+                  setDragOverKey(null);
+                }}
+                onDragEnd={() => {
+                  setDraggedKey(null);
+                  setDragOverKey(null);
+                }}
+              >
                 <button
                   onClick={() => deleteScenario(key)}
                   className="text-xs text-red-600 mr-2 px-1"
@@ -845,7 +887,7 @@ export default function ScenariosEditor() {
                 </button>
                 <button
                   onClick={() => setSelectedKey(key)}
-                  className={`flex-1 text-left px-2 py-1 rounded text-sm ${
+                  className={`flex-1 text-left px-2 py-1 rounded text-sm cursor-move ${
                     key === selectedKey ? "bg-indigo-100" : "hover:bg-gray-100"
                   }`}
                 >
