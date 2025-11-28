@@ -138,7 +138,7 @@ const buildClientScenarios = (config) => {
   });
 };
 
-const MapRecenter = ({ currentScenario }) => {
+const MapRecenter = ({ currentScenario, isMobile }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -161,8 +161,40 @@ const MapRecenter = ({ currentScenario }) => {
 
     const targetZoom = Math.log2(targetPixels / distanceAtZoom0);
 
-    map.flyTo([centerLat, centerLng], targetZoom, { animate: true });
-  }, [currentScenario, map]);
+    // Calculate center with offset for mobile
+    let targetCenterLat = centerLat;
+    let targetCenterLng = centerLng;
+
+    if (isMobile) {
+      // We want the midpoint to be at 40% of the screen height (from top)
+      // The map center is at 50% of the screen height
+      // So we need to shift the map center DOWN by 10% of the screen height
+      // This means the coordinate that corresponds to the new center is "above" the current midpoint
+
+      // Let's do this in pixel space at the target zoom
+      const midpointPoint = map.project([centerLat, centerLng], targetZoom);
+      const offsetY = mapSize.y * 0.10; // 10% of screen height
+
+      // New center point in pixels
+      const newCenterPoint = midpointPoint.add([0, -offsetY]); // Subtract Y to move "up" in pixels (which means looking at a point further north)
+      // Wait, if we want the midpoint (P) to be at 40% (top), and center (C) is at 50%.
+      // P.y = C.y - 10%H
+      // We want to find a new center C' such that P is at 40% relative to the viewport.
+      // When centered at C', P.pixel = C'.pixel - 10%H
+      // So C'.pixel = P.pixel + 10%H
+      // Adding to Y in pixels moves DOWN the screen.
+      // So the new center C' is physically below P.
+      // So we ADD to the Y coordinate.
+
+      const targetCenterPoint = midpointPoint.add([0, offsetY]);
+      const newCenterLatLng = map.unproject(targetCenterPoint, targetZoom);
+
+      targetCenterLat = newCenterLatLng.lat;
+      targetCenterLng = newCenterLatLng.lng;
+    }
+
+    map.flyTo([targetCenterLat, targetCenterLng], targetZoom, { animate: true });
+  }, [currentScenario, map, isMobile]);
 
   return null;
 };
@@ -183,6 +215,25 @@ const MapRoute = () => {
   const [hasUserDraggedMap, setHasUserDraggedMap] = useState(false);
   const [error, setError] = useState(null);
   const [sessionId] = useState(uuidv4());
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      if (typeof window === "undefined") return;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const smallestSide = Math.min(width, height);
+      const ua = navigator.userAgent;
+      const isTouch = navigator.maxTouchPoints > 0;
+      const uaMatchesMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+      setIsMobile(uaMatchesMobile || (isTouch && smallestSide <= 1024) || width <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const [showScenarioTransition, setShowScenarioTransition] = useState(false);
   const lastFittedScenarioRef = useRef(null);
@@ -360,7 +411,7 @@ const MapRoute = () => {
         dragging
         inertia
       >
-        <MapRecenter currentScenario={currentScenario} />
+        <MapRecenter currentScenario={currentScenario} isMobile={isMobile} />
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
