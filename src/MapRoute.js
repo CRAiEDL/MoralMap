@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import Routing from "./Routing";
@@ -157,6 +157,7 @@ const MapRoute = () => {
   const [mapInstance, setMapInstance] = useState(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [showScenarioTransition, setShowScenarioTransition] = useState(false);
+  const lastFittedScenarioRef = useRef(null);
   useEffect(() => {
     localStorage.setItem("sessionId", sessionId);
   }, [sessionId]);
@@ -430,9 +431,14 @@ const MapRoute = () => {
 
     if (!mapInstance || !targetBounds) return;
 
-    if (isMobile && hasUserDraggedMap) return;
+    const scenarioChanged = lastFittedScenarioRef.current !== scenarioIndex;
 
+    if (!scenarioChanged && isMobile && hasUserDraggedMap) return;
+
+    mapInstance.invalidateSize();
     mapInstance.fitBounds(targetBounds, mapPaddingOptions.fit);
+
+    lastFittedScenarioRef.current = scenarioIndex;
 
     if (isMobile) {
       const targetRatio = mapPaddingOptions.targetVerticalCenterRatio ?? 0.5;
@@ -450,6 +456,7 @@ const MapRoute = () => {
     routeBounds,
     mapPaddingOptions,
     isMobile,
+    scenarioIndex,
     viewport.height,
     hasUserDraggedMap,
   ]);
