@@ -320,6 +320,17 @@ const MapRoute = () => {
     return L.latLngBounds(pts);
   }, [currentScenario]);
 
+  useEffect(() => {
+    if (!mapInstance || !currentScenario) return;
+
+    const start = L.latLng(currentScenario.start);
+    const end = L.latLng(currentScenario.end);
+    const centerLat = (start.lat + end.lat) / 2;
+    const centerLng = (start.lng + end.lng) / 2;
+
+    mapInstance.panTo([centerLat, centerLng], { animate: true });
+  }, [mapInstance, currentScenario]);
+
 
 
   const handleSelectRoute = (index) => {
