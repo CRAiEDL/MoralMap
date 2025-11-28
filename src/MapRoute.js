@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { buildScenarios } from "./utils/buildScenarios";
 import { withBasePath } from "./utils/basePath";
+import ScenarioTransition from "./ScenarioTransition";
 
 const ROUTE_CONFIG_CACHE_KEY = "route-config-cache-v1";
 const ROUTE_CONFIG_CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
@@ -155,10 +156,21 @@ const MapRoute = () => {
   const [sessionId] = useState(uuidv4());
   const [mapInstance, setMapInstance] = useState(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const [showScenarioTransition, setShowScenarioTransition] = useState(false);
   useEffect(() => {
     localStorage.setItem("sessionId", sessionId);
   }, [sessionId]);
   const router = useRouter();
+
+  useEffect(() => {
+    if (scenarioIndex === 0) return;
+
+    setShowScenarioTransition(true);
+
+    const timeout = setTimeout(() => setShowScenarioTransition(false), 1050);
+
+    return () => clearTimeout(timeout);
+  }, [scenarioIndex]);
 
   useEffect(() => {
     const updateViewport = () => {
@@ -549,6 +561,10 @@ const MapRoute = () => {
           onSelectRoute={handleSelectRoute}
           onSubmit={handleChoice}
         />
+      )}
+
+      {ageConfirmed && consentGiven && showScenarioTransition && !showOnboarding && (
+        <ScenarioTransition current={scenarioIndex + 1} total={scenarios.length} />
       )}
     </div>
   );
