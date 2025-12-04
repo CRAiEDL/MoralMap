@@ -1,14 +1,24 @@
 import type { NextConfig } from 'next'
 
+const ABSOLUTE_URL_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//
+
 const rawBasePath =
   process.env.NEXT_PUBLIC_BASE_PATH ??
   process.env.NEXT_PUBLIC_WEBFLOW_BASE_PATH ??
   ''
 
-const normalizedBasePath =
-  rawBasePath && rawBasePath !== '/'
-    ? `${rawBasePath.startsWith('/') ? '' : '/'}${rawBasePath.replace(/\/$/, '')}`
-    : ''
+const normalizedBasePath = (() => {
+  if (!rawBasePath || rawBasePath === '/') return ''
+
+  if (ABSOLUTE_URL_REGEX.test(rawBasePath)) {
+    console.warn(
+      `Ignoring absolute base path value "${rawBasePath}"; NEXT_PUBLIC_BASE_PATH must be a path such as /foo`
+    )
+    return ''
+  }
+
+  return `${rawBasePath.startsWith('/') ? '' : '/'}${rawBasePath.replace(/\/$/, '')}`
+})()
 
 const staticAssetPaths = [
   '/favicon.ico',
