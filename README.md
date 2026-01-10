@@ -1,70 +1,91 @@
-# Getting Started with Create React App
+# MoralMaps
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+MoralMaps is a mapping-based research experience that guides participants through route-choice scenarios and captures survey feedback. The app presents travel alternatives on an interactive map, records selections, and stores session data for later analysis.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Interactive scenario flow** with map-based routes and alternative choices.
+- **Participant onboarding** with consent and eligibility modals.
+- **Survey capture** at the end of the experience.
+- **Admin workspace** for configuring scenarios, instructions, and survey content.
+- **Session persistence** backed by Redis (with an in-memory fallback for local development).
 
-### `npm start`
+## Tech stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Next.js 15** + **React 19** for the application shell and routing.
+- **Leaflet / React-Leaflet** for map rendering.
+- **Redis** (or Vercel KV/Cloudflare-backed Redis) for session storage.
+- **Tailwind CSS** for styling.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Getting started
 
-### `npm test`
+### Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js 18+
+- npm
 
-### `npm run build`
+### Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Running locally
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm start
+```
 
-### `npm run eject`
+The app will be available at `http://localhost:3000`.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Production build
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm run build
+npm run serve
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Configuration
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+MoralMaps uses environment variables to configure admin access and persistence.
 
-## Learn More
+| Variable | Purpose |
+| --- | --- |
+| `ADMIN_USERNAME` / `ADMIN_USER` / `NEXT_PUBLIC_ADMIN_USERNAME` | Admin basic auth username. |
+| `ADMIN_PASSWORD` / `ADMIN_PASS` / `NEXT_PUBLIC_ADMIN_PASSWORD` | Admin basic auth password. |
+| `REDIS_URL` | Redis connection URL for session storage. |
+| `NEXT_PUBLIC_BASE_PATH` | Optional base path for deployments that serve the app under a subpath. |
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+If `REDIS_URL` is not set in development, the app falls back to an in-memory store and logs a warning.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Project structure
 
-### Code Splitting
+- `app/` — Next.js routes (including `/admin` and API handlers).
+- `src/` — shared UI components, scenario logic, and admin UI.
+- `docs/` — reference documentation (see the user data structure guide).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Admin access
 
-### Analyzing the Bundle Size
+The admin interface lives under `/admin` and is protected by HTTP basic auth. Set the admin username and password in environment variables before accessing the admin screens.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Data model
 
-### Making a Progressive Web App
+Session storage details are documented in [`docs/user-data-structure.md`](docs/user-data-structure.md).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Scripts
 
-### Advanced Configuration
+| Command | Description |
+| --- | --- |
+| `npm start` | Run the dev server. |
+| `npm run build` | Build the production bundle. |
+| `npm run serve` | Start the production server. |
+| `npm run preview` | Build and run the OpenNext Cloudflare preview. |
+| `npm run cf-typegen` | Generate Cloudflare environment types. |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Deployment
 
-### Deployment
+This project supports standard Next.js deployments and OpenNext Cloudflare builds via the `preview` script. Ensure the required environment variables are configured in your deployment platform.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## License
 
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This repository does not currently declare a license. Please add one if you intend to distribute this project publicly.
