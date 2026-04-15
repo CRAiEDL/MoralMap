@@ -8,6 +8,7 @@ import SurveyEditor from "./SurveyEditor";
 import InstructionsEditor from "./InstructionsEditor";
 import TextsEditor from "./TextsEditor";
 import PilotSettings from "./PilotSettings";
+import DataManager from "./DataManager";
 import { validateScenarioConfig } from "./validateScenarios";
 import { withBasePath } from "../utils/basePath";
 
@@ -109,7 +110,7 @@ export default function AdminApp() {
   const router = useRouter();
   const pathname = usePathname();
   const section = pathname.split("/").pop();
-  const validSections = ["scenarios", "survey", "instructions", "texts", "pilot"];
+  const validSections = ["scenarios", "survey", "instructions", "texts", "pilot", "data"];
 
   useEffect(() => {
     if (!section || !validSections.includes(section)) {
@@ -141,6 +142,7 @@ export default function AdminApp() {
           <Link href="/admin/instructions" className={linkClass("instructions")}>Instructions</Link>
           <Link href="/admin/texts" className={linkClass("texts")}>Texts</Link>
           <Link href="/admin/pilot" className={linkClass("pilot")}>Pilot</Link>
+          <Link href="/admin/data" className={linkClass("data")}>Data</Link>
         </nav>
         <div className="flex items-center gap-3">
           {canSave && dirty && (
@@ -173,6 +175,7 @@ export default function AdminApp() {
         {section === "instructions" && <InstructionsEditor />}
         {section === "texts" && <TextsEditor />}
         {section === "pilot" && <PilotSettings />}
+        {section === "data" && <DataManager />}
       </main>
     </ConfigContext.Provider>
   );

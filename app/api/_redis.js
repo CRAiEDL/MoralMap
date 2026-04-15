@@ -2,6 +2,14 @@ import { createClient } from 'redis';
 
 const createInMemoryRedis = () => {
   const store = new Map();
+  const toRegexFromPattern = (pattern = '*') => {
+    const escaped = `${pattern}`.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`^${escaped.replace(/\\\*/g, '.*')}$`);
+  };
+  const matchKeys = (pattern = '*') => {
+    const regex = toRegexFromPattern(pattern);
+    return Array.from(store.keys()).filter((key) => regex.test(key));
+  };
 
   return {
     json: {
@@ -15,6 +23,24 @@ const createInMemoryRedis = () => {
     },
     async expire(_key, _seconds) {
       return 1;
+    },
+    async keys(pattern = '*') {
+      return matchKeys(pattern);
+    },
+    async del(keys) {
+      const keyList = Array.isArray(keys) ? keys : [keys];
+      let deleted = 0;
+      for (const key of keyList) {
+        if (store.delete(key)) deleted += 1;
+      }
+      return deleted;
+    },
+    async *scanIterator(options = {}) {
+      const pattern = options.MATCH ?? '*';
+      const keys = matchKeys(pattern);
+      for (const key of keys) {
+        yield key;
+      }
     },
   };
 };

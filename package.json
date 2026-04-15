@@ -19,6 +19,7 @@
     "uuid": "^9.0.1"
   },
   "scripts": {
+    "dev": "next dev",
     "start": "next dev",
     "build": "next build",
     "serve": "next start",
