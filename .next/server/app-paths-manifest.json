@@ -1,3 +1,5 @@
 {
-  "/page": "app/page.js"
+  "/api/route-endpoints/route": "app/api/route-endpoints/route.js",
+  "/api/admin/user-data/route": "app/api/admin/user-data/route.js",
+  "/admin/data/page": "app/admin/data/page.js"
 }

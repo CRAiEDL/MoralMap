@@ -26,21 +26,95 @@ const isAuthorized = (req) => {
   return isValidAdminBasicAuth(authHeader);
 };
 
+const collectKeys = (raw, bucket) => {
+  if (typeof raw === 'string') {
+    bucket.push(raw);
+    return;
+  }
+
+  if (Array.isArray(raw)) {
+    for (const value of raw) {
+      collectKeys(value, bucket);
+    }
+  }
+};
+
 const listUserDataKeys = async () => {
   if (typeof redis.scanIterator === 'function') {
     const keys = [];
     for await (const key of redis.scanIterator({ MATCH: USER_DATA_PATTERN, COUNT: 200 })) {
-      if (typeof key === 'string') keys.push(key);
+      collectKeys(key, keys);
     }
-    return keys.sort();
+    return Array.from(new Set(keys)).sort();
   }
 
   if (typeof redis.keys === 'function') {
     const keys = await redis.keys(USER_DATA_PATTERN);
-    return (Array.isArray(keys) ? keys : []).sort();
+    return Array.from(new Set(Array.isArray(keys) ? keys : [])).sort();
   }
 
   return [];
+};
+
+const normalizeJsonRoot = (value) => {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+};
+
+const parseJsonString = (value) => {
+  if (typeof value !== 'string') return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const readRecord = async (key) => {
+  if (typeof redis.type === 'function') {
+    try {
+      const keyType = await redis.type(key);
+      if (keyType && keyType !== 'ReJSON-RL') {
+        if (typeof redis.get === 'function') {
+          const rawString = await redis.get(key);
+          return parseJsonString(rawString);
+        }
+        return null;
+      }
+    } catch {
+      // Continue with JSON attempts below.
+    }
+  }
+
+  if (redis.json && typeof redis.json.get === 'function') {
+    try {
+      const jsonRoot = await redis.json.get(key, { path: '$' });
+      const normalized = normalizeJsonRoot(jsonRoot);
+      if (normalized && typeof normalized === 'object') return normalized;
+    } catch {
+      // Try no-path fallback.
+    }
+
+    try {
+      const value = await redis.json.get(key);
+      const normalized = normalizeJsonRoot(value);
+      if (normalized && typeof normalized === 'object') return normalized;
+    } catch {
+      // Fall through to string fallback.
+    }
+  }
+
+  if (typeof redis.get === 'function') {
+    try {
+      const rawString = await redis.get(key);
+      return parseJsonString(rawString);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 };
 
 const parseDateMs = (value) => {
@@ -110,12 +184,14 @@ export async function GET(req) {
 
   try {
     const keys = await listUserDataKeys();
-    const records = await Promise.all(
+    const maybeRecords = await Promise.all(
       keys.map(async (key) => {
-        const raw = await redis.json.get(key);
+        const raw = await readRecord(key);
+        if (!raw || typeof raw !== 'object') return null;
         return toRecord(key, raw);
       })
     );
+    const records = maybeRecords.filter(Boolean);
 
     records.sort((a, b) => parseDateMs(b.lastUpdatedAt) - parseDateMs(a.lastUpdatedAt));
 

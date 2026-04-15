@@ -29,7 +29,6 @@ export default function MarkdownText({ content, className = "", components = {} 
       remarkPlugins={[remarkGfm, remarkBreaks]}
       className={className}
       components={combinedComponents}
-      linkTarget="_blank"
     >
       {content || ""}
     </ReactMarkdown>
